@@ -1,0 +1,9 @@
+# В образ НЕ кладём только служебный мусор.
+# data/ и .env НАМ НУЖНЫ: data — база SQLite (в compose ещё монтируется volume ./data:/app/data,
+# так что прогресс не теряется между пересборками), .env — читается docker-compose через env_file.
+.git
+.venv/
+venv/
+__pycache__/
+*.pyc
+.dockerignore

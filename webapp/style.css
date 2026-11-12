@@ -1,0 +1,160 @@
+:root {
+  --bg: linear-gradient(160deg, #241a3a 0%, #3a1d52 100%);
+  --panel: rgba(30, 22, 54, .92);
+  --panel2: rgba(46, 32, 78, .9);
+  --line: rgba(147, 112, 219, .45);
+  --line2: rgba(180, 140, 255, .65);
+  --text: #ede6ff;
+  --muted: #b9a8d6;
+  --accent: #fbbf24;
+  --accent2: #f59e0b;
+  --good: #22c55e;
+  --bad: #ef4444;
+  --btnbg: linear-gradient(180deg, #6d3fb8, #51288f);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 500 15px/1.4 "Segoe UI", system-ui, sans-serif;
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+}
+input, textarea { -webkit-user-select: auto; user-select: auto; }
+.hidden { display: none !important; }
+img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px; }
+
+/* ── Топбар ── */
+#topbar {
+  position: fixed; inset: 0 0 auto 0; height: 56px; z-index: 20;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 44px 12px 0; background: linear-gradient(180deg, rgba(20,14,36,.85), rgba(20,14,36,.2));
+}
+.tb-side { display: flex; gap: 8px; align-items: center; }
+.tb-right { justify-content: flex-end; }
+.tb-name { font-weight: 700; }
+.tb-chip {
+  background: var(--btnbg); border: 1px solid var(--line2);
+  border-radius: 12px; padding: 5px 10px; font-weight: 700; font-size: 13px;
+  display: inline-flex; gap: 5px; align-items: center; white-space: nowrap;
+}
+.tb-chip.star { background: linear-gradient(180deg, #b45309, #92400e); border-color: #d97706; }
+.tb-chip.dark { background: linear-gradient(180deg, #7c3aed, #5b21b6); border-color: #a78bfa; }
+.tb-chip.egez { background: linear-gradient(180deg, #0d9488, #0f766e); border-color: #2dd4bf; }
+
+/* ── Экран ── */
+#screen { position: absolute; top: 118px; left: 10px; right: 10px; bottom: 10px; overflow-y: auto; padding-bottom: 30px; }
+.loading { display: block; text-align: center; margin-top: 40px; color: var(--muted); }
+.panel { background: var(--panel); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 12px; }
+.panel h3 { font-size: 18px; margin-bottom: 8px; }
+.muted { color: var(--muted); }
+
+/* ── BS-меню ── */
+.bsm { display: grid; grid-template-columns: 82px 1fr 82px; gap: 10px; align-items: stretch; }
+.bsm .col { display: flex; flex-direction: column; gap: 8px; }
+.bsm .col .sq { flex: 1; aspect-ratio: 1; }
+.btn {
+  background: var(--btnbg); color: var(--text); border: 1.5px solid var(--line2);
+  border-radius: 14px; padding: 10px 12px; font: 700 14px/1.2 inherit;
+  cursor: pointer; touch-action: manipulation;
+}
+.btn:active { transform: scale(.96); }
+.btn[disabled] { opacity: .4; cursor: default; }
+.btn.small { font-size: 12px; padding: 8px 10px; border-radius: 12px; }
+.sq {
+  background: var(--btnbg); border: 1.5px solid var(--line2); border-radius: 14px;
+  font-size: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+}
+.sq span { font-size: 11px; font-weight: 700; line-height: 1; }
+.bsm .center { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.hero-face { font-size: 88px; line-height: 1; }
+.hero-name { font-size: 20px; font-weight: 800; }
+.team-info { color: var(--muted); font-size: 13px; }
+.btn-play {
+  background: linear-gradient(180deg, #fde047, #f59e0b) !important; color: #451a03 !important;
+  border-color: #b45309 !important; font-size: 20px !important; padding: 16px 20px !important;
+}
+.bsm .bottom { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 4px; }
+.bsm .bottom .btn { flex: 1; font-size: 13px; padding: 12px 6px; }
+
+/* ── Карта ── */
+.chapters { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.locgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.loc { background: var(--panel2); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 8px; text-align: center; font-size: 13px; cursor: pointer; }
+.loc.done { border-color: var(--good); opacity: .7; }
+.loc.next { border-color: var(--accent); background: linear-gradient(180deg, rgba(251,191,36,.12), var(--panel2)); }
+.loc.lock { opacity: .35; }
+.loc .num { font-size: 18px; font-weight: 800; }
+
+/* ── Бой ── */
+.arena { display: flex; gap: 12px; margin-top: 12px; }
+.arena .side { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.unit { background: var(--panel2); border: 2px solid var(--line); border-radius: 14px; padding: 10px; }
+.unit.dead { opacity: .35; }
+.unit.sel { border-color: var(--accent); }
+.unit .hpb { height: 8px; background: rgba(0,0,0,.4); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.unit .hpb i { display: block; height: 100%; background: linear-gradient(90deg, #22c55e, #84cc16); }
+.stances { display: flex; gap: 4px; margin-top: 6px; }
+.stances .btn { flex: 1; padding: 6px 4px; font-size: 12px; }
+.stances .btn.on { outline: 2px solid var(--accent); }
+.battle-controls { margin-top: 12px; display: flex; gap: 10px; }
+.battle-controls .btn { flex: 1; font-size: 17px; padding: 14px; }
+.log { margin-top: 12px; max-height: 140px; overflow-y: auto; font-size: 12.5px; color: var(--muted); }
+.log div { padding: 2px 0; }
+
+/* ── Карточки ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 12px; }
+.card { background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
+.card h4 { font-size: 15px; margin-bottom: 4px; }
+.card .face { font-size: 40px; }
+.card .row { display: flex; justify-content: space-between; font-size: 12.5px; margin: 3px 0; }
+.card .btn { margin-top: 8px; font-size: 12px; padding: 7px 8px; }
+.tag { display: inline-block; font-size: 10.5px; padding: 2px 7px; border-radius: 8px; background: var(--btnbg); border: 1px solid var(--line2); margin-left: 4px; }
+.tag.inteam { background: linear-gradient(180deg, #15803d, #166534); border-color: #4ade80; }
+
+/* ── Рег/прочее ── */
+.center-screen { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+.reg-panel { width: min(380px, 92vw); }
+.reg-panel input { width: 100%; margin: 10px 0; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line2); background: rgba(0,0,0,.3); color: var(--text); font: inherit; }
+
+/* ── Оверлей меню ── */
+#menu_overlay { position: fixed; inset: 0; z-index: 50; background: rgba(10, 6, 20, .7); display: flex; align-items: center; justify-content: center; }
+.m-box { position: relative; background: var(--panel); border: 2px solid var(--line2); border-radius: 20px; padding: 26px 22px; width: min(320px, 88vw); }
+.m-x { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--text); font-size: 20px; padding: 6px; }
+.m-list { display: flex; flex-direction: column; gap: 10px; }
+.m-btn { text-align: left; background: var(--btnbg); border: 1.5px solid var(--line2); color: var(--text); border-radius: 12px; padding: 12px 14px; font: 700 15px/1.2 inherit; }
+
+/* ── Тост ── */
+#toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 60; background: var(--panel); border: 1.5px solid var(--line2); border-radius: 12px; padding: 10px 16px; font-weight: 700; }
+
+/* ── Портрет → предупреждение ── */
+#rotate { display: none; }
+@media (orientation: portrait) {
+  #rotate { display: flex; position: fixed; inset: 0; z-index: 100; background: var(--bg); color: var(--text); align-items: center; justify-content: center; text-align: center; font-size: 17px; padding: 30px; }
+}
+@media (orientation: landscape) { #rotate { display: none !important; } }
+
+/* Кастомный дропдаун */
+.dd { position: relative; display: inline-block; cursor: pointer; }
+.dd b { display: inline-block; padding: 8px 12px; background: var(--btnbg); border: 1px solid var(--line2); border-radius: 10px; }
+.dd-list {
+  position: absolute; top: 100%; left: 0; z-index: 30; min-width: 100%;
+  background: var(--panel); border: 1.5px solid var(--line2); border-radius: 10px; overflow: hidden; margin-top: 4px;
+}
+.dd-item { padding: 8px 12px; cursor: pointer; white-space: nowrap; }
+.dd-item:hover { background: rgba(124,58,237,.25); }
+.tb-back { cursor: pointer; }
+
+/* «Назад» как в Telegram */
+.tg-back {
+  width: 34px; height: 34px; border: none; border-radius: 50%;
+  background: rgba(255,255,255,.92); color: #1c1430; font-size: 26px; font-weight: 700; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3); flex: 0 0 34px;
+}
+
+/* Модал вместо нативного prompt() */
+#modal { position: fixed; inset: 0; z-index: 70; background: rgba(10,6,20,.7); display: flex; align-items: center; justify-content: center; }
+#modal .m-box input { width: 100%; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line2); background: rgba(0,0,0,.35); color: var(--text); font: inherit; }
+
+.btn.on { outline: 2px solid var(--accent); }

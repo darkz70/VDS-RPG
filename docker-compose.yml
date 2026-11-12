@@ -1,0 +1,16 @@
+# Удобный локальный запуск в Docker: docker compose up --build
+# Сайт будет на http://localhost:8000/app/ , база — в ./data (сохраняется между запусками)
+services:
+  vds-rpg:
+    build: .
+    container_name: vds-rpg
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+      - DB_PATH=/app/data/vdsrpg.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
