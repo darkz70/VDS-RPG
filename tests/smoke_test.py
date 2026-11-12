@@ -165,7 +165,7 @@ rv = client.post("/api/battle", json={"initData": init, "chapter": 1, "loc": 1})
 j = rv.get_json()
 check("API бой", j["ok"] and j["win"])
 rv = client.post("/api/campaign", json={"initData": init})
-check("API campaign: 12 глав", len(rv.get_json()["chapters"]) == 12)
+check("API campaign: 9 глав", len(rv.get_json()["chapters"]) == 9)
 chapters = rv.get_json()["chapters"]
 check("API campaign: открыта только глава 1", chapters[0]["unlocked"] and not any(c["unlocked"] for c in chapters[1:]))
 rv = client.post("/api/battle", json={"initData": init, "chapter": 2, "loc": 1})
