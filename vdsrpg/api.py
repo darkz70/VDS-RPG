@@ -420,13 +420,11 @@ def api_battle():
     body = request.get_json(force=True, silent=True) or {}
     chapter = int(body.get("chapter", 1))
     loc = int(body.get("loc", 1))
-    is_admin = player["tg_id"] in config.ADMIN_IDS
-    # Главы проходятся по очереди: нужен босс предыдущей главы (админу lock'и не мешают — для тестов)
-    if not is_admin:
-        if chapter > 1 and player["progress"].get(f"{chapter - 1}:{D.LOCS_PER_CHAPTER}", 0) == 0:
-            return jsonify({"ok": False, "error": f"Глава {chapter} закрыта — сначала пройдите босса главы {chapter - 1} (локация {D.LOCS_PER_CHAPTER})"})
-        if loc > 1 and player["progress"].get(f"{chapter}:{loc - 1}", 0) == 0:
-            return jsonify({"ok": False, "error": f"Локация {loc} закрыта — сначала пройдите локацию {loc - 1}"})
+    # Главы проходятся по очереди: нужен босс предыдущей главы (lock'и — для всех)
+    if chapter > 1 and player["progress"].get(f"{chapter - 1}:{D.LOCS_PER_CHAPTER}", 0) == 0:
+        return jsonify({"ok": False, "error": f"Глава {chapter} закрыта — сначала пройдите босса главы {chapter - 1} (локация {D.LOCS_PER_CHAPTER})"})
+    if loc > 1 and player["progress"].get(f"{chapter}:{loc - 1}", 0) == 0:
+        return jsonify({"ok": False, "error": f"Локация {loc} закрыта — сначала пройдите локацию {loc - 1}"})
     res = engine.battle(player, chapter, loc)
     if res.get("ok"):
         _save(player)
@@ -434,10 +432,7 @@ def api_battle():
 
 
 def _battle_lock_check(player, chapter, loc):
-    """Те же lock'и прогрессии, что в /api/battle. Админу — можно всё."""
-    is_admin = player["tg_id"] in config.ADMIN_IDS
-    if is_admin:
-        return None
+    """Те же lock'и прогрессии, что в /api/battle — для всех игроков."""
     if chapter > 1 and player["progress"].get(f"{chapter - 1}:{D.LOCS_PER_CHAPTER}", 0) == 0:
         return jsonify({"ok": False, "error": f"Глава {chapter} закрыта — сначала пройдите босса главы {chapter - 1} (локация {D.LOCS_PER_CHAPTER})"})
     if loc > 1 and player["progress"].get(f"{chapter}:{loc - 1}", 0) == 0:
@@ -592,10 +587,14 @@ def api_gacha():
         return api_ok({"cost": D.PACK_COST})
     times = min(int(body.get("times", 1) or 1), 10)
     free = bool(body.get("free"))
-    all_res, chars = [], []
-    for _ in range(times):
-        r = engine.open_pack(player, free=free and _ == 0)
+    all_res, chars, last_err = [], [], None
+    for i in range(times):
+        is_free = free and i == 0
+        r = engine.open_pack(player, free=is_free)
         if not r.get("ok"):
+            last_err = r.get("error")
+            if i == 0:
+                return jsonify(r), 400
             break
         all_res.append(r)
         if r.get("character"):
@@ -603,9 +602,9 @@ def api_gacha():
     if all_res:
         _save(player)
     if times > 1:
-        return api_ok({"characters": chars, "count": len(all_res),
+        return api_ok({"characters": chars, "count": len(all_res), "last_error": last_err,
                        "state": engine.public_state(player)})
-    return jsonify(all_res[0] if all_res else {"ok": False, "error": "Не хватает Э Gez"})
+    return jsonify(all_res[0] if all_res else {"ok": False, "error": last_err or "Не хватает Э Gez"}), (200 if all_res else 400)
 
 
 @app.post("/api/brewing")

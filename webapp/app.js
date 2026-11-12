@@ -157,7 +157,7 @@ async function renderMapGrid() {
   var locs = "";
   (cur.locations || []).forEach(function (l) {
     var cls = l.clears > 0 ? "done" : (l.locked ? "lock" : "next");
-    locs += '<div class="loc ' + cls + '" onclick="startBattle(' + cur.chapter + ',' + l.n + ')"><div class="num">' + l.n + '</div>' + esc(l.theme || "") + (l.is_boss ? " 👹" : "") + '</div>';
+    locs += '<div class="loc ' + cls + '" onclick="' + (l.locked ? "toast('Локация закрыта')" : "startBattle(" + cur.chapter + "," + l.n + ")") + '"><div class="num">' + l.n + '</div>' + esc(l.theme || "") + (l.is_boss ? " 👹" : "") + '</div>';
   });
   screen.innerHTML = '<div class="panel"><h3>🗺 Глава ' + cur.chapter + ' — ' + esc((cur.locations[0] && cur.locations[0].theme) || "Локации") + '</h3>' +
     '<div class="chapters">' + chBtns + '</div><div class="locgrid">' + locs + '</div></div>';
@@ -273,14 +273,14 @@ function showPackRes(chars) {
   if (chars.length === 1) {
     var c = chars[0];
     openModal('<div class="card" style="margin:0">' +
-      '<div class="face">' + (c.face ?? "🎴") + '</div>' +
+      '<div class="face">' + (c.face || "🎴") + '</div>' +
       '<h3>' + esc(c.name) + '</h3>' +
       '<p class="muted">' + esc(c.aff || "") + " · " + esc(c.rarity || "") + ' редкость</p>' +
       '<div class="row"><span>⭐ ур. ' + (c.level || 1) + '</span><span>' + esc(c.rarity_name || "") + '</span></div>' +
       '<button class="btn btn-play" onclick="closeModal()">Забрать</button></div>');
   } else {
     var cards = chars.map(function (c) {
-      return '<div class="card" style="margin:0;padding:10px"><div class="face">' + (c.face ?? "🎴") + '</div><h4>' + esc(c.name) + '</h4><p class="muted" style="font-size:11px">' + esc(c.rarity || "") + '</p></div>';
+      return '<div class="card" style="margin:0;padding:10px"><div class="face">' + (c.face || "🎴") + '</div><h4>' + esc(c.name) + '</h4><p class="muted" style="font-size:11px">' + esc(c.rarity || "") + '</p></div>';
     }).join("");
     openModal('<h3 style="margin-bottom:10px">🎉 Выпали:</h3><div class="grid">' + cards + '</div><button class="btn btn-play" style="margin-top:10px" onclick="closeModal()">Забрать</button>');
   }
