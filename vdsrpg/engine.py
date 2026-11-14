@@ -589,6 +589,7 @@ def public_character(char: dict, player: dict | None = None) -> dict:
     st = char_stats(char, player)
     return {
         "id": char["id"], "key": char["key"], "name": char["name"],
+        "face": char.get("face") or D.CHAR_BY_KEY.get(char["key"], {}).get("face", "🦸"),
         "rarity": char["rarity"], "level": char["level"], "evo": char["evo"],
         "affinities": char["affinities"], "dmg_type": char["dmg_type"],
         "stats": {k: round(v, 2) if isinstance(v, float) else v for k, v in st.items()},
