@@ -110,6 +110,7 @@ async function renderMap() {
           '<button class="sq" onclick="TAB=\'chars\';render()">🎭<span>Персы</span></button>' +
           '<button class="sq" onclick="TAB=\'shop\';render()">🛒<span>Магазин</span></button>' +
           '<button class="sq" onclick="TAB=\'brew\';render()">🎒<span>Инвентарь</span></button>' +
+'<button class="sq" disabled>🛡<span>Клан</span></button>' +
         '</div>' +
         '<div class="center">' +
           '<div class="hero-face">' + esc(charFaceFor(hero)) + '</div>' +
@@ -123,8 +124,7 @@ async function renderMap() {
           '<button class="sq" onclick="TAB=\'profile\';render()">👤<span>Профиль</span></button>' +
           '<button class="sq" disabled>📰<span>Новости</span></button>' +
           '<button class="sq" disabled>👥<span>Друзья</span></button>' +
-          '<button class="sq" disabled>🛡<span>Клан</span></button>' +
-          (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
+                    (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
         '</div>' +
         '<div class="bottom">' +
           '<button class="btn small on">🗺 Кампания</button>' +
