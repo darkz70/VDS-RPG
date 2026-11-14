@@ -180,7 +180,7 @@ function hpBar(hp, max) {
   return '<div class="hpb"><i style="width:' + p + '%"></i></div>';
 }
 function renderBattle() {
-  if (!BATTLE) { TAB = "menu"; render(); return; }
+  if (!BATTLE || BATTLE.over) { TAB = "map"; render(); return; }
   var s = BATTLE;
   var you = '<div class="side">';
   (s.fighters || []).forEach(function (u) {
@@ -209,25 +209,39 @@ function renderBattle() {
       '<div class="log">' + log + '</div></div>';
 }
 function setStance(cid, st) { STANCE[cid] = st; renderBattle(); }
+function battleEnd(r) {
+  var win = BATTLE.win;
+  if (r.state) { STATE = r.state; renderChip(); }
+  var w = r.rewards || {};
+  var parts = [];
+  if (w.exp) parts.push("+" + fmt(w.exp) + " опыта");
+  if (w.egez) parts.push("+" + fmt(w.egez) + " Э Gez");
+  if (w.darkness) parts.push("+" + fmt(w.darkness) + " Тьмы");
+  if (w.scroll) parts.push("📜 Свиток босса");
+  var log = "";
+  (BATTLE.log || []).forEach(function (l) { log += "<div>" + esc(l) + "</div>"; });
+  BATTLE = null;
+  screen.innerHTML =
+    '<div class="panel" style="text-align:center">' +
+    '<h3>' + (win ? "🏆 Победа!" : "💀 Поражение") + '</h3>' +
+    '<p class="muted">' + (parts.length ? parts.join(" · ") : (win ? "" : "Отряд пал. Усильте героев и попробуйте снова.")) + '</p>' +
+    (r.levelups && r.levelups.length
+      ? '<p style="color:var(--good);font-weight:700">⭐ Новый уровень: ' + esc(r.levelups.join(", ")) + '</p>' : "") +
+    '<div class="log" style="text-align:left">' + log + '</div>' +
+    '<button class="btn btn-play" style="margin-top:12px" onclick="TAB=\'map\';render()">🗺 К карте</button>' +
+    '<button class="btn" style="margin-top:8px" onclick="TAB=\'menu\';render()">🏠 В меню</button></div>';
+}
+
 async function battleTurn() {
   var actions = [];
   (BATTLE.fighters || []).forEach(function (u) {
     if (u.hp > 0) actions.push({ char_id: u.char_id, type: STANCE[u.char_id] || "attack", target: BATTLE_TARGET });
   });
   var r = await api("/api/battle/turn", { actions: actions });
-  if (r.ok) {
-    BATTLE = r.battle || r;
-    if (r.rewards) {
-      var msg = "🏆 Победа!";
-      if (r.rewards.xp) msg += " +" + r.rewards.xp + " опыта";
-      if (r.rewards.egez) msg += " +" + r.rewards.egez + " Э Gez";
-      if (r.rewards.darkness) msg += " +" + r.rewards.darkness + " Тьмы";
-      toast(msg);
-      STATE = r.state || STATE;
-      renderChip();
-    }
-    renderBattle();
-  } else toast(r.error);
+  if (!r.ok) { toast(r.error); return; }
+  BATTLE = r.battle || r;
+  if (BATTLE.over) { battleEnd(r); return; }
+  renderBattle();
 }
 
 /* ── Персонажи ── */
@@ -236,21 +250,81 @@ function renderChars() {
   var team = STATE.team || [];
   var cards = chars.map(function (c) {
     var inte = team.indexOf(c.id) >= 0;
-    return '<div class="card"><div class="face">' + (c.face || "❓") + '</div><h4>' + esc(c.name) + (inte ? '<span class="tag inteam">в отряде</span>' : "") + '</h4>' +
-      '<div class="row"><span>⭐ ур. ' + c.level + '</span><span>' + esc(c.aff || "") + '</span></div>' +
-      '<div class="row"><span>HP ' + c.hp + '</span><span>СИЛ ' + c.str + ' · ЗЩ ' + c.def + '</span></div>' +
-      '<div class="row"><span>🎲 ' + c.chance + '%</span></div>' +
-      '<button class="btn" onclick="toggleTeam(' + c.id + ')">' + (inte ? "Убрать из отряда" : "В отряд") + '</button></div>';
+    var st = c.stats || {};
+    return '<div class="card"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + (inte ? '<span class="tag inteam">в отряде</span>' : "") + '</h4>' +
+      '<div class="row"><span>⭐ ур. ' + c.level + '</span><span>' + esc((c.affinities || []).join(", ") || "") + '</span></div>' +
+      '<div class="row"><span>❤️ ' + st.hp + '</span><span>⚔️ ' + st.str + ' · 🛡 ' + st.def + '</span></div>' +
+      '<div class="row"><span>💨 ' + st.agi + ' · 🔮 ' + st.will + '</span></div>' +
+      '<div style="display:flex;gap:6px;justify-content:center">' +
+      '<button class="btn" onclick="toggleTeam(\'' + c.id + '\')">' + (inte ? "Убрать" : "В отряд") + '</button>' +
+      '<button class="btn" onclick="charGear(\'' + c.id + '\')">🎒 Экипировка</button></div></div>';
   }).join("");
   screen.innerHTML = '<div class="panel"><h3>🎭 Персонажи · отряд ' + team.length + '/' + (STATE.team_size || 1) + '</h3><div class="grid">' + cards + '</div></div>';
 }
+function charGear(cid) {
+  var c = null;
+  (STATE.characters || []).forEach(function (x) { if (x.id === cid) c = x; });
+  if (!c) return;
+  var slotNames = (META && META.slot_names) || {};
+  var gear = c.gear || {};
+  var worn = "";
+  ["weapon","armor","gloves","amulet","off_weapon","off_armor"].forEach(function (slot) {
+    var it = gear[slot];
+    worn += '<div class="row"><span>' + esc(slotNames[slot] || slot) + '</span><span>' +
+      (it ? esc(it.name) + ' <button class="btn small" onclick="unequipItem(\'' + cid + '\',\'' + slot + '\')">✖</button>' : '<span class="muted">пусто</span>') + '</span></div>';
+  });
+  (c.artifacts || []).forEach(function (it, idx) {
+    worn += '<div class="row"><span>Артефакт ' + (idx + 1) + '</span><span>' +
+      (it ? esc(it.name) + ' <button class="btn small" onclick="unequipItem(\'' + cid + '\',\'artifact\',' + idx + ')">✖</button>' : '<span class="muted">пусто</span>') + '</span></div>';
+  });
+  (c.bonus || []).forEach(function (it, idx) {
+    worn += '<div class="row"><span>Бонус ' + (idx + 1) + '</span><span>' +
+      (it ? esc(it.name) + ' <button class="btn small" onclick="unequipItem(\'' + cid + '\',\'bonus\',' + idx + ')">✖</button>' : '<span class="muted">пусто</span>') + '</span></div>';
+  });
+  var inv = ((STATE.items) || []).map(function (it) {
+    return '<div class="row"><span>' + esc(it.name) + ' <span class="tag">' + esc(slotNames[it.slot] || it.slot) + '</span></span>' +
+      '<button class="btn small" onclick="equipItem(\'' + cid + '\',\'' + it.id + '\')">➕ Надеть</button></div>';
+  }).join("");
+  openModal('<h3 style="margin-bottom:6px">🎒 ' + esc(c.name) + '</h3>' +
+    '<p class="muted" style="margin-bottom:8px">Надето:</p>' + worn +
+    '<p class="muted" style="margin:10px 0 4px">Инвентарь:</p>' +
+    (inv || '<p class="muted">Пусто — предметы выпадают в бою и из колод</p>') +
+    '<button class="btn" style="margin-top:12px" onclick="closeModal()">Готово</button>');
+}
+async function equipItem(cid, iid) {
+  var r = await api("/api/equip", { char_id: cid, item_id: iid });
+  if (!r.ok) { toast(r.error); return; }
+  toast("Надето");
+  await refresh();
+  charGear(cid);
+}
+async function unequipItem(cid, slot, idx) {
+  var r = await api("/api/unequip", { char_id: cid, slot: slot, index: idx });
+  if (!r.ok) { toast(r.error); return; }
+  toast("Снято");
+  await refresh();
+  charGear(cid);
+}
+
 async function toggleTeam(id) {
   var team = (STATE.team || []).slice();
   var i = team.indexOf(id);
-  if (i >= 0) team.splice(i, 1);
-  else team.push(id);
+  if (i >= 0) {
+    if (team.length <= 1) { toast("В отряде должен оставаться хотя бы один герой"); return; }
+    team.splice(i, 1);
+    toast("Герой убран из отряда");
+  } else {
+    if (team.length >= (STATE.team_size || 1)) {
+      team.shift();
+      toast("Отряд полон — заменён первый герой");
+    } else {
+      toast("Герой добавлен в отряд");
+    }
+    team.push(id);
+  }
   var r = await api("/api/character/team", { char_ids: team });
-  if (r.ok) { refresh(); } else toast(r.error);
+  if (r.ok) { STATE.team = r.team || team; renderChars(); refresh(); }
+  else toast(r.error);
 }
 
 /* ── Магазин ── */
