@@ -123,6 +123,7 @@ async function renderMap() {
           '<button class="sq" onclick="TAB=\'profile\';render()">👤<span>Профиль</span></button>' +
           '<button class="sq" disabled>📰<span>Новости</span></button>' +
           '<button class="sq" disabled>👥<span>Друзья</span></button>' +
+          '<button class="sq" disabled>🛡<span>Клан</span></button>' +
           (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
         '</div>' +
         '<div class="bottom">' +
