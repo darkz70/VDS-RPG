@@ -344,7 +344,9 @@ async function renderShop() {
       : "") +
     '</div>';
 }
-function showPackRes(chars) {
+function showPackRes(chars, dupInfo) {
+  chars = (chars || []).filter(function (c) { return !!c; });
+  if (dupInfo) toast("♻️ Дубликаты: " + dupInfo);
   if (!chars.length) return;
   if (chars.length === 1) {
     var c = chars[0];
@@ -362,23 +364,27 @@ function showPackRes(chars) {
   }
 }
 async function buyPack() {
-  var r = await api("/api/gacha/open");
-  if (r.ok) { showPackRes([r.character]); STATE = r.state || STATE; renderChip(); renderShop(); }
-  else toast(r.error);
+  var r = await api("/api/gacha/open", { times: 1 });
+  if (!r.ok) { toast(r.error); return; }
+  STATE = r.state || STATE;
+  renderChip(); renderShop();
+  if (r.duplicate) { toast("♻️ Дубликат: " + esc(r.name) + " → +" + fmt(r.egez_gain || 0) + " Э Gez"); return; }
+  showPackRes([r.character]);
 }
 async function buyPacksTimes(times, opts) {
   opts = opts || {};
   var body = { times: times };
   if (opts.free) body.free = true;
   var r = await api("/api/gacha/open", body);
-  if (r.ok) {
-    var chars = r.characters || [];
-    if (!chars.length && r.character) chars = [r.character];
-    showPackRes(chars);
-    STATE = r.state || STATE;
-    renderChip();
-    renderShop();
-  } else toast(r.error);
+  if (!r.ok) { toast(r.error); return; }
+  var chars = r.characters || [];
+  if (!chars.length && r.character) chars = [r.character];
+  var dupInfo = "";
+  if (r.duplicates && r.duplicates.length) dupInfo = r.duplicates.length + " шт → +" + fmt(r.dup_egez || 0) + " Э Gez";
+  STATE = r.state || STATE;
+  renderChip(); renderShop();
+  if (r.duplicate && !chars.length) { toast("♻️ Дубликат: " + esc(r.name || "") + " → +" + fmt(r.egez_gain || 0) + " Э Gez"); renderShop(); return; }
+  showPackRes(chars, dupInfo || null);
 }
 
 /* ── Инвентарь/зелья ── */

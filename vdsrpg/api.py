@@ -589,23 +589,31 @@ def api_gacha():
     times = min(int(body.get("times", 1) or 1), 10)
     free = bool(body.get("free"))
     all_res, chars, last_err = [], [], None
+    dups, dup_gain = [], 0
     for i in range(times):
         is_free = free and i == 0
         r = engine.open_pack(player, free=is_free)
         if not r.get("ok"):
             last_err = r.get("error")
-            if i == 0:
+            if i == 0 and not all_res:
                 return jsonify(r), 400
             break
         all_res.append(r)
         if r.get("character"):
             chars.append(r["character"])
+        if r.get("duplicate"):
+            dups.append(r.get("name", ""))
+            dup_gain += int(r.get("egez_gain", 0))
     if all_res:
         _save(player)
     if times > 1:
-        return api_ok({"characters": chars, "count": len(all_res), "last_error": last_err,
+        return api_ok({"characters": chars, "count": len(all_res),
+                       "duplicates": dups, "dup_egez": dup_gain, "last_error": last_err,
                        "state": engine.public_state(player)})
-    return jsonify(all_res[0] if all_res else {"ok": False, "error": last_err or "Не хватает Э Gez"}), (200 if all_res else 400)
+    out = all_res[0] if all_res else {"ok": False, "error": last_err or "Не хватает Э Gez"}
+    if all_res:
+        out["state"] = engine.public_state(player)
+    return jsonify(out), (200 if all_res else 400)
 
 
 @app.post("/api/brewing")
