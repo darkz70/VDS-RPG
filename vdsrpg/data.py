@@ -74,6 +74,17 @@ def chapter_mult(chapter: int) -> int:
 
 
 MAX_CHAPTERS = 9
+CHAPTER_NAMES = {
+    1: "Войд: Правление Скалка",
+    2: "Майнкилд: Античность",
+    3: "Браслетия",
+    4: "Бравл Таун",
+    5: "Ангелы против Демонов",
+    6: "Войд 3 сезон: старые цивилизации",
+    7: "Чето (скоро)",
+    8: "Чето (скоро)",
+    9: "Чето (скоро)",
+}
 LOCS_PER_CHAPTER = 35
 
 # ---------------------------------------------------------------------------
@@ -216,29 +227,29 @@ def gen_locations(chapter: int) -> list[dict]:
 # Персонажи (существа Тени, подражающие другим)
 # ---------------------------------------------------------------------------
 CHARACTERS = [
-    {"key": "shadow_seeker", "name": "Тень-Искатель", "rarity": 3, "aff": "Тень", "dmg_type": "phys",
+    {"key": "shadow_seeker", "face": "🌒", "name": "Тень-Искатель", "rarity": 3, "aff": "Тень", "dmg_type": "phys",
      "hp": 90, "str": 12, "will": 8, "agi": 10, "def": 3},
-    {"key": "crimson_echo", "name": "Кровавый Отзвук", "rarity": 4, "aff": "Кровь", "dmg_type": "mag",
+    {"key": "crimson_echo", "face": "🩸", "name": "Кровавый Отзвук", "rarity": 4, "aff": "Кровь", "dmg_type": "mag",
      "hp": 100, "str": 8, "will": 15, "agi": 9, "def": 4},
-    {"key": "flame_echo", "name": "Пламенное Эхо", "rarity": 4, "aff": "Огонь", "dmg_type": "phys",
+    {"key": "flame_echo", "face": "🔥", "name": "Пламенное Эхо", "rarity": 4, "aff": "Огонь", "dmg_type": "phys",
      "hp": 110, "str": 15, "will": 8, "agi": 11, "def": 4},
-    {"key": "ice_visage", "name": "Ледяной Лик", "rarity": 5, "aff": "Лёд", "dmg_type": "mag",
+    {"key": "ice_visage", "face": "🧊", "name": "Ледяной Лик", "rarity": 5, "aff": "Лёд", "dmg_type": "mag",
      "hp": 130, "str": 10, "will": 19, "agi": 10, "def": 5},
-    {"key": "void_wanderer", "name": "Пустотный Странник", "rarity": 6, "aff": "Пустота", "dmg_type": "mag",
+    {"key": "void_wanderer", "face": "🕳️", "name": "Пустотный Странник", "rarity": 6, "aff": "Пустота", "dmg_type": "mag",
      "hp": 160, "str": 12, "will": 24, "agi": 13, "def": 6},
-    {"key": "chaos_image", "name": "Хаос-Образ", "rarity": 5, "aff": "Хаос", "dmg_type": "phys",
+    {"key": "chaos_image", "face": "🌀", "name": "Хаос-Образ", "rarity": 5, "aff": "Хаос", "dmg_type": "phys",
      "hp": 150, "str": 20, "will": 10, "agi": 14, "def": 6},
-    {"key": "death_whisper", "name": "Смертный Шёпот", "rarity": 6, "aff": "Смерть", "dmg_type": "mag",
+    {"key": "death_whisper", "face": "💀", "name": "Смертный Шёпот", "rarity": 6, "aff": "Смерть", "dmg_type": "mag",
      "hp": 150, "str": 11, "will": 26, "agi": 12, "def": 6},
-    {"key": "light_shadow", "name": "Светоносная Тень", "rarity": 7, "aff": "Свет", "dmg_type": "mag",
+    {"key": "light_shadow", "face": "✨", "name": "Светоносная Тень", "rarity": 7, "aff": "Свет", "dmg_type": "mag",
      "hp": 190, "str": 14, "will": 32, "agi": 15, "def": 8},
-    {"key": "storm_shard", "name": "Грозовой Осколок", "rarity": 4, "aff": "Молния", "dmg_type": "phys",
+    {"key": "storm_shard", "face": "⚡", "name": "Грозовой Осколок", "rarity": 4, "aff": "Молния", "dmg_type": "phys",
      "hp": 105, "str": 16, "will": 9, "agi": 16, "def": 4},
-    {"key": "nature_horror", "name": "Природный Ужас", "rarity": 5, "aff": "Природа", "dmg_type": "mag",
+    {"key": "nature_horror", "face": "🌿", "name": "Природный Ужас", "rarity": 5, "aff": "Природа", "dmg_type": "mag",
      "hp": 140, "str": 11, "will": 20, "agi": 11, "def": 6},
-    {"key": "crystal_blade", "name": "Кристальный Клинок", "rarity": 3, "aff": "Кристалл", "dmg_type": "phys",
+    {"key": "crystal_blade", "face": "💎", "name": "Кристальный Клинок", "rarity": 3, "aff": "Кристалл", "dmg_type": "phys",
      "hp": 95, "str": 13, "will": 8, "agi": 12, "def": 5},
-    {"key": "metal_predator", "name": "Металлический Хищник", "rarity": 5, "aff": "Металл", "dmg_type": "phys",
+    {"key": "metal_predator", "face": "⚙️", "name": "Металлический Хищник", "rarity": 5, "aff": "Металл", "dmg_type": "phys",
      "hp": 150, "str": 21, "will": 9, "agi": 10, "def": 9},
 ]
 CHAR_BY_KEY = {c["key"]: c for c in CHARACTERS}

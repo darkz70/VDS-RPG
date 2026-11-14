@@ -405,7 +405,8 @@ def api_campaign():
             })
         # Глава открыта, если пройден босс (локация 35) предыдущей главы
         unlocked = ch == 1 or player["progress"].get(f"{ch - 1}:{D.LOCS_PER_CHAPTER}", 0) > 0
-        chapters.append({"chapter": ch, "mult": D.chapter_mult(ch), "locations": locs, "unlocked": unlocked})
+        chapters.append({"chapter": ch, "name": D.CHAPTER_NAMES.get(ch, f"Глава {ch}"),
+                         "mult": D.chapter_mult(ch), "locations": locs, "unlocked": unlocked})
     return api_ok({"chapters": chapters, "max_chapter": D.MAX_CHAPTERS})
 
 

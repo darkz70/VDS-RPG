@@ -16,11 +16,18 @@ var IS_ADMIN = false; // админ-флаг
 var MAINT = false;    // техперерыв
 var TAB = "menu";     // текущий экран: menu|map|chars|shop|brew|profile|admin|battle
 var MAP_CHAPTER = 1;  // выбранная глава на карте
-var MODE = "campaign"; // campaign|ranked
-var TOGGLE = false;
 var BATTLE = null;    // сессия боя
 var BATTLE_TARGET = 0;
 var STANCE = {};      // char_id -> "attack"|"defend"
+
+function charFaceFor(c) {
+  if (!c) return "🦸";
+  if (c.face) return c.face;
+  var key = c.key || "";
+  var cat = (META && META.characters) || [];
+  for (var i = 0; i < cat.length; i++) { if (cat[i].key === key) return cat[i].face || "🦸"; }
+  return "🦸";
+}
 
 var IC_DARK = '<img class="ic" src="/app/img/darkness.png" alt="">';
 var IC_EGEZ = '<img class="ic" src="/app/img/egez.png" alt="">';
@@ -96,18 +103,16 @@ async function renderMap() {
     var next = r.next;
     var team = STATE.team || [];
     var hero = null;
-    var chars = META && META.characters ? META.characters : [];
-    for (var i = 0; i < chars.length; i++) { if (chars[i].id === team[0]) hero = chars[i]; }
+    (STATE.characters || []).forEach(function (c) { if (c.id === team[0]) hero = c; });
     screen.innerHTML =
       '<div class="bsm">' +
         '<div class="col">' +
           '<button class="sq" onclick="TAB=\'chars\';render()">🎭<span>Персы</span></button>' +
           '<button class="sq" onclick="TAB=\'shop\';render()">🛒<span>Магазин</span></button>' +
           '<button class="sq" onclick="TAB=\'brew\';render()">🎒<span>Инвентарь</span></button>' +
-          '<button class="sq" onclick="TAB=\'map\';render()">🗺<span>Карта</span></button>' +
         '</div>' +
         '<div class="center">' +
-          '<div class="hero-face">' + esc(hero && hero.face ? hero.face : "🦸") + '</div>' +
+          '<div class="hero-face">' + esc(charFaceFor(hero)) + '</div>' +
           '<div class="hero-name">' + esc(hero ? hero.name : STATE.name) + '</div>' +
           '<div class="team-info">👥 Отряд ' + team.length + '/' + (STATE.team_size || 1) + ' · ⭐ ур. ' + (STATE.level || 1) + '</div>' +
           '<button class="btn small" onclick="TAB=\'chars\';render()">⚙️ Управление отрядом</button>' +
@@ -118,12 +123,12 @@ async function renderMap() {
           '<button class="sq" onclick="TAB=\'profile\';render()">👤<span>Профиль</span></button>' +
           '<button class="sq" disabled>📰<span>Новости</span></button>' +
           '<button class="sq" disabled>👥<span>Друзья</span></button>' +
-          (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '<button class="sq" disabled>🛡<span>Клан</span></button>') +
+          (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
         '</div>' +
         '<div class="bottom">' +
-          '<button class="btn small' + (MODE === "campaign" ? " on" : "") + '" onclick="MODE=\'campaign\';TOGGLE=true;render()">🗺 Кампания</button>' +
-          '<button class="btn small' + (MODE === "ranked" ? " on" : "") + '" onclick="MODE=\'ranked\';TOGGLE=true;render()">🏆 Ранкед</button>' +
-          '<button class="btn btn-play" onclick="TOGGLE=true;render()">🎯 Выбрать локацию</button>' +
+          '<button class="btn small on">🗺 Кампания</button>' +
+          '<button class="btn small" disabled>🏆 Ранкед · скоро</button>' +
+          '<button class="btn btn-play" onclick="TAB=\'map\';render()">▶ ИГРАТЬ</button>' +
         '</div>' +
       '</div>';
   } else {
@@ -141,10 +146,6 @@ function randomTeam() {
 
 /* ── Карта глав ── */
 async function renderMapGrid() {
-  if (MODE === "ranked") {
-    screen.innerHTML = '<div class="panel"><h3>🏆 Ранкед</h3><p class="muted">Рейтинговый бой скоро появится</p></div>';
-    return;
-  }
   var r = await api("/api/campaign");
   if (!r.ok) { toast(r.error); return; }
   var chapters = r.chapters || [];
@@ -159,7 +160,7 @@ async function renderMapGrid() {
     var cls = l.clears > 0 ? "done" : (l.locked ? "lock" : "next");
     locs += '<div class="loc ' + cls + '" onclick="' + (l.locked ? "toast('Локация закрыта')" : "startBattle(" + cur.chapter + "," + l.n + ")") + '"><div class="num">' + l.n + '</div>' + esc(l.theme || "") + (l.is_boss ? " 👹" : "") + '</div>';
   });
-  screen.innerHTML = '<div class="panel"><h3>🗺 Глава ' + cur.chapter + ' — ' + esc((cur.locations[0] && cur.locations[0].theme) || "Локации") + '</h3>' +
+  screen.innerHTML = '<div class="panel"><h3>🗺 Глава ' + cur.chapter + ' — ' + esc(cur.name || "") + '</h3>' +
     '<div class="chapters">' + chBtns + '</div><div class="locgrid">' + locs + '</div></div>';
 }
 
@@ -595,8 +596,17 @@ function setTgBack() {
     if (TAB === "menu") tg.BackButton.hide(); else tg.BackButton.show();
   } catch (e) {}
 }
+function adaptScreen() {
+  var h = window.innerHeight || 800;
+  document.body.classList.toggle("tiny", h < 480);
+  document.body.classList.toggle("small", h >= 480 && h < 620);
+}
+window.addEventListener("resize", adaptScreen);
+window.addEventListener("orientationchange", function () { setTimeout(adaptScreen, 200); });
+
 function render() {
   if (!STATE) return;
+  adaptScreen();
   tryFullscreen();
   setTgBack();
   if (MAINT && !IS_ADMIN) { renderMaintenance(); return; }
@@ -628,6 +638,7 @@ window.addEventListener("error", function (e) {
 
 /* ── Старт ── */
 (function boot() {
+  adaptScreen();
   tryFullscreen();
   var timeout = setTimeout(function () {
     if (!STATE) screen.innerHTML = '<div class="panel" style="margin-top:30px;text-align:center"><h3>⚠️ Долгая загрузка</h3><p class="muted">Сервер не ответил. Обновите страницу.</p><button class="btn" onclick="location.reload()">🔄 Обновить</button></div>';

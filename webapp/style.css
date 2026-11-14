@@ -182,3 +182,31 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
   .grid { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
   .card .face { font-size: 32px; }
 }
+
+/* ══ Жёсткая адаптация под экран (реальная) ══ */
+:root { --hero: clamp(44px, 16vh, 96px); --sq-ic: clamp(20px, 5vh, 30px); }
+.hero-face { font-size: var(--hero); line-height: 1; }
+.hero-name { font-size: clamp(14px, 3.6vh, 22px); }
+.sq { font-size: var(--sq-ic); }
+.sq span { font-size: clamp(9px, 2.2vh, 12px); }
+.bsm { grid-template-columns: clamp(58px, 11vw, 96px) 1fr clamp(58px, 11vw, 96px); }
+.bsm .bottom .btn { font-size: clamp(11px, 2.6vh, 14px); padding: clamp(6px, 1.8vh, 14px) 6px; }
+.btn-play { font-size: clamp(14px, 3.4vh, 20px) !important; }
+#screen { top: clamp(88px, 17vh, 124px); left: clamp(4px, 1.4vw, 16px); right: clamp(4px, 1.4vw, 16px); }
+.panel { border-radius: clamp(10px, 2.4vh, 18px); }
+.panel h3 { font-size: clamp(14px, 3.4vh, 20px); }
+.loc .num { font-size: clamp(14px, 3.2vh, 18px); }
+.unit { padding: clamp(6px, 1.6vh, 12px); }
+.unit b { font-size: clamp(12px, 2.8vh, 15px); }
+
+/* очень низкие экраны (телефон горизонтально ~320–430px) */
+@media (max-height: 480px) {
+  #topbar { padding-top: 2px; height: 38px; }
+  #screen { top: 44px; }
+  .tb-chip { padding: 3px 7px; font-size: 11px; border-radius: 9px; }
+  .bsm .center .btn.small { padding: 4px 8px; font-size: 10px; }
+  .log { max-height: 90px; font-size: 11px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+  .card { padding: 8px; border-radius: 10px; }
+  .card .face { font-size: 28px; }
+}
