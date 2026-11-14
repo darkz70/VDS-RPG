@@ -210,3 +210,21 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
   .card { padding: 8px; border-radius: 10px; }
   .card .face { font-size: 28px; }
 }
+
+/* ══ Меню обязано ВЛЕЗАТЬ в экран телефона без скролла ══ */
+.bsm { height: 100%; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+.bsm .col, .bsm .center { min-height: 0; overflow: hidden; }
+.bsm .col .sq { aspect-ratio: auto; min-height: 0; flex: 1 1 0%; }
+.bsm .center { justify-content: center; gap: clamp(3px, 1vh, 8px); }
+.bsm .center .btn.small { padding: clamp(3px, 1vh, 8px) clamp(6px, 1.6vw, 12px); font-size: clamp(9px, 2vh, 13px); }
+.bsm .bottom { margin-top: clamp(4px, 1.2vh, 10px); }
+.hero-face { font-size: clamp(28px, 13vh, 84px); }
+.team-info { font-size: clamp(10px, 2.2vh, 13px); }
+.hero-name { font-size: clamp(13px, 3vh, 20px); }
+/* узкие телефоны: центральные кнопки и плитки ужимаются */
+@media (max-height: 480px) {
+  .hero-face { font-size: clamp(24px, 11vh, 40px); }
+  .bsm .center .btn.small { padding: 2px 6px; font-size: 9px; }
+  .bsm .bottom .btn { padding: 4px 4px; font-size: 10px; }
+  .btn-play { font-size: 12px !important; }
+}
