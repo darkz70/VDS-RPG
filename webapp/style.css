@@ -43,8 +43,8 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .tb-chip.egez { background: linear-gradient(180deg, #0d9488, #0f766e); border-color: #2dd4bf; }
 
 /* ── Экран ── */
-#topbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
-#screen { position: absolute; top: calc(118px + env(safe-area-inset-top, 0px)); left: 10px; right: 10px; bottom: 10px; overflow-y: auto; padding-bottom: 30px; }
+#topbar { padding-top: calc(6px + var(--tg-top, 0px)); }
+#screen { position: absolute; top: calc(118px + var(--tg-top, 0px)); left: 10px; right: 10px; bottom: 10px; overflow-y: auto; padding-bottom: 30px; }
 .loading { display: block; text-align: center; margin-top: 40px; color: var(--muted); }
 .panel { background: var(--panel); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 12px; }
 .panel h3 { font-size: 18px; margin-bottom: 8px; }
@@ -191,7 +191,7 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .bsm { grid-template-columns: clamp(58px, 11vw, 96px) 1fr clamp(58px, 11vw, 96px); }
 .bsm .bottom .btn { font-size: clamp(11px, 2.6vh, 14px); padding: clamp(6px, 1.8vh, 14px) 6px; }
 .btn-play { font-size: clamp(14px, 3.4vh, 20px) !important; }
-#screen { top: calc(clamp(88px, 17vh, 124px) + env(safe-area-inset-top, 0px)); left: clamp(4px, 1.4vw, 16px); right: clamp(4px, 1.4vw, 16px); }
+#screen { top: calc(clamp(88px, 17vh, 124px) + var(--tg-top, 0px)); left: clamp(4px, 1.4vw, 16px); right: clamp(4px, 1.4vw, 16px); }
 .panel { border-radius: clamp(10px, 2.4vh, 18px); }
 .panel h3 { font-size: clamp(14px, 3.4vh, 20px); }
 .loc .num { font-size: clamp(14px, 3.2vh, 18px); }
