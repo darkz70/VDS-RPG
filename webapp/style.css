@@ -43,7 +43,8 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .tb-chip.egez { background: linear-gradient(180deg, #0d9488, #0f766e); border-color: #2dd4bf; }
 
 /* ── Экран ── */
-#screen { position: absolute; top: 118px; left: 10px; right: 10px; bottom: 10px; overflow-y: auto; padding-bottom: 30px; }
+#topbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
+#screen { position: absolute; top: calc(118px + env(safe-area-inset-top, 0px)); left: 10px; right: 10px; bottom: 10px; overflow-y: auto; padding-bottom: 30px; }
 .loading { display: block; text-align: center; margin-top: 40px; color: var(--muted); }
 .panel { background: var(--panel); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px; margin-top: 12px; }
 .panel h3 { font-size: 18px; margin-bottom: 8px; }
@@ -161,8 +162,6 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 
 /* Адаптация под разные разрешения */
 @media (max-height: 640px) {
-  #topbar { padding-top: 6px; height: 44px; }
-  #screen { top: 56px; }
   .hero-face { font-size: 56px; }
   .bsm { grid-template-columns: 72px 1fr 72px; gap: 8px; }
   .btn { font-size: 12.5px; padding: 8px 10px; }
@@ -192,7 +191,7 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .bsm { grid-template-columns: clamp(58px, 11vw, 96px) 1fr clamp(58px, 11vw, 96px); }
 .bsm .bottom .btn { font-size: clamp(11px, 2.6vh, 14px); padding: clamp(6px, 1.8vh, 14px) 6px; }
 .btn-play { font-size: clamp(14px, 3.4vh, 20px) !important; }
-#screen { top: clamp(88px, 17vh, 124px); left: clamp(4px, 1.4vw, 16px); right: clamp(4px, 1.4vw, 16px); }
+#screen { top: calc(clamp(88px, 17vh, 124px) + env(safe-area-inset-top, 0px)); left: clamp(4px, 1.4vw, 16px); right: clamp(4px, 1.4vw, 16px); }
 .panel { border-radius: clamp(10px, 2.4vh, 18px); }
 .panel h3 { font-size: clamp(14px, 3.4vh, 20px); }
 .loc .num { font-size: clamp(14px, 3.2vh, 18px); }
@@ -201,8 +200,6 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 
 /* очень низкие экраны (телефон горизонтально ~320–430px) */
 @media (max-height: 480px) {
-  #topbar { padding-top: 2px; height: 38px; }
-  #screen { top: 44px; }
   .tb-chip { padding: 3px 7px; font-size: 11px; border-radius: 9px; }
   .bsm .center .btn.small { padding: 4px 8px; font-size: 10px; }
   .log { max-height: 90px; font-size: 11px; }
@@ -228,3 +225,8 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
   .bsm .bottom .btn { padding: 4px 4px; font-size: 10px; }
   .btn-play { font-size: 12px !important; }
 }
+
+/* ══ Карточки персонажей: кнопки не вылезают и не налипают ══ */
+.ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(128px, 26vw, 200px), 1fr)); gap: clamp(8px, 1.6vw, 12px); }
+.ch-card { display: flex; flex-direction: column; overflow: hidden; }
+.ch-card .btn { width: 100%; padding: clamp(3px, 1vh, 8px) 4px; font-size: clamp(9px, 1.9vh, 12px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
