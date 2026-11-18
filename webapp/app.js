@@ -67,7 +67,12 @@ function api(path, body) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  }).then(function (r) { return r.json(); });
+  }).then(function (r) {
+    return r.json().then(function (j) {
+      if (j.maintenance) toast(j.error || "🔧 Тех перерыв");
+      return j;
+    });
+  }).catch(function () { return { ok: false, error: "Нет связи с сервером" }; });
 }
 
 /* ── Чипы ── */
@@ -559,8 +564,10 @@ async function adminReset(tgId) {
   if (r.ok) renderAdmin();
 }
 async function toggleMaintenance() {
-  var r = await api("/api/admin/maintenance");
-  if (r.ok) { MAINT = !!r.maintenance; toast("Обновлено"); renderAdmin(); } else toast(r.error);
+  var target = !MAINT;
+  var r = await api("/api/admin/maintenance", { on: target });
+  if (r.ok) { MAINT = !!r.maintenance; toast(MAINT ? "🔧 Тех перерыв включён" : "✅ Тех перерыв выключен"); renderAdmin(); }
+  else toast(r.error);
 }
 async function createPromo() {
   var code = (document.getElementById("pc-code").value || "").trim().toUpperCase();
