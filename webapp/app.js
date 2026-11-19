@@ -278,15 +278,15 @@ function renderChars() {
   var cards = chars.map(function (c) {
     var inte = team.indexOf(c.id) >= 0;
     var st = c.stats || {};
-    return '<div class="card"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + (inte ? '<span class="tag inteam">в отряде</span>' : "") + '</h4>' +
+    return '<div class="card ch-card"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + (inte ? '<span class="tag inteam">в отряде</span>' : "") + '</h4>' +
       '<div class="row"><span>⭐ ур. ' + c.level + '</span><span>' + esc((c.affinities || []).join(", ") || "") + '</span></div>' +
       '<div class="row"><span>❤️ ' + st.hp + '</span><span>⚔️ ' + st.str + ' · 🛡 ' + st.def + '</span></div>' +
       '<div class="row"><span>💨 ' + st.agi + ' · 🔮 ' + st.will + '</span></div>' +
-      '<div style="display:flex;gap:6px;justify-content:center">' +
+      '<div class="ch-actions">' +
       '<button class="btn" onclick="toggleTeam(\'' + c.id + '\')">' + (inte ? "Убрать" : "В отряд") + '</button>' +
       '<button class="btn" onclick="charGear(\'' + c.id + '\')">🎒 Экипировка</button></div></div>';
   }).join("");
-  screen.innerHTML = '<div class="panel"><h3>🎭 Персонажи · отряд ' + team.length + '/' + (STATE.team_size || 1) + '</h3><div class="grid">' + cards + '</div></div>';
+  screen.innerHTML = '<div class="panel"><h3>🎭 Персонажи · отряд ' + team.length + '/' + (STATE.team_size || 1) + '</h3><div class="ch-grid">' + cards + '</div></div>';
 }
 function charGear(cid) {
   var c = null;
