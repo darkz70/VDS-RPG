@@ -7,16 +7,24 @@ if (tg) {
   tg.expand();
   if (tg.ready) tg.ready();
   var rootStyle = document.documentElement.style;
+  var TG_TOP = 0;
   function setTgTop() {
     var t = 0;
     try {
       if (tg.contentSafeAreaInset && typeof tg.contentSafeAreaInset.top === "number") t = tg.contentSafeAreaInset.top;
       if (!t && tg.safeAreaInset && typeof tg.safeAreaInset.top === "number") t = tg.safeAreaInset.top;
     } catch (e) {}
-    if (t < 40) t = 48;
+    if (t < 40) t = 56;
+    TG_TOP = t;
     rootStyle.setProperty("--tg-top", t + "px");
   }
   setTgTop();
+  var topTries = 0;
+  var topTimer = setInterval(function () {
+    setTgTop(); topTries++;
+    if (topTries > 20) clearInterval(topTimer);
+  }, 500);
+  if (window.addEventListener) window.addEventListener("resize", setTgTop);
   if (tg.onEvent) { try { tg.onEvent("contentSafeAreaChanged", setTgTop); tg.onEvent("safeAreaChanged", setTgTop); } catch (e) {} }
   try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
 }
@@ -144,7 +152,7 @@ async function renderMap() {
                     (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
         '</div>' +
         '<div class="bottom">' +
-          '<button class="btn small" disabled>🗺 Кампания · скоро</button>' +
+          '<button class="btn small on">🗺 Кампания</button>' +
           '<button class="btn small" disabled>🏆 Ранкед · скоро</button>' +
           '<button class="btn btn-play" onclick="TAB=\'map\';render()">▶ ИГРАТЬ</button>' +
         '</div>' +
