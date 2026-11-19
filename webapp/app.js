@@ -6,6 +6,18 @@ var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : 
 if (tg) {
   tg.expand();
   if (tg.ready) tg.ready();
+  var rootStyle = document.documentElement.style;
+  function setTgTop() {
+    var t = 0;
+    try {
+      if (tg.contentSafeAreaInset && typeof tg.contentSafeAreaInset.top === "number") t = tg.contentSafeAreaInset.top;
+      if (!t && tg.safeAreaInset && typeof tg.safeAreaInset.top === "number") t = tg.safeAreaInset.top;
+    } catch (e) {}
+    if (t < 40) t = 48;
+    rootStyle.setProperty("--tg-top", t + "px");
+  }
+  setTgTop();
+  if (tg.onEvent) { try { tg.onEvent("contentSafeAreaChanged", setTgTop); tg.onEvent("safeAreaChanged", setTgTop); } catch (e) {} }
   try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
 }
 var INIT_DATA = tg ? tg.initData : "tg_id=1&first_name=Dev";
@@ -55,7 +67,12 @@ function api(path, body) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  }).then(function (r) { return r.json(); });
+  }).then(function (r) {
+    return r.json().then(function (j) {
+      if (j.maintenance) toast(j.error || "🔧 Тех перерыв");
+      return j;
+    });
+  }).catch(function () { return { ok: false, error: "Нет связи с сервером" }; });
 }
 
 /* ── Чипы ── */
@@ -127,7 +144,7 @@ async function renderMap() {
                     (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
         '</div>' +
         '<div class="bottom">' +
-          '<button class="btn small on">🗺 Кампания</button>' +
+          '<button class="btn small" disabled>🗺 Кампания · скоро</button>' +
           '<button class="btn small" disabled>🏆 Ранкед · скоро</button>' +
           '<button class="btn btn-play" onclick="TAB=\'map\';render()">▶ ИГРАТЬ</button>' +
         '</div>' +
@@ -547,8 +564,10 @@ async function adminReset(tgId) {
   if (r.ok) renderAdmin();
 }
 async function toggleMaintenance() {
-  var r = await api("/api/admin/maintenance");
-  if (r.ok) { MAINT = !!r.maintenance; toast("Обновлено"); renderAdmin(); } else toast(r.error);
+  var target = !MAINT;
+  var r = await api("/api/admin/maintenance", { on: target });
+  if (r.ok) { MAINT = !!r.maintenance; toast(MAINT ? "🔧 Тех перерыв включён" : "✅ Тех перерыв выключен"); renderAdmin(); }
+  else toast(r.error);
 }
 async function createPromo() {
   var code = (document.getElementById("pc-code").value || "").trim().toUpperCase();
