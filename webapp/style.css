@@ -230,3 +230,15 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(128px, 26vw, 200px), 1fr)); gap: clamp(8px, 1.6vw, 12px); }
 .ch-card { display: flex; flex-direction: column; overflow: hidden; }
 .ch-card .btn { width: 100%; padding: clamp(3px, 1vh, 8px) 4px; font-size: clamp(9px, 1.9vh, 12px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ══ Персонажи: плотный вид на маленькой высоте ══ */
+.ch-grid { align-content: start; }
+.ch-card { padding: clamp(4px, 1vh, 10px); }
+.ch-card .face { font-size: clamp(20px, 5.5vh, 44px); line-height: 1.1; }
+.ch-card h4 { font-size: clamp(11px, 2.4vh, 15px); margin: 2px 0; }
+.ch-card .muted { font-size: clamp(9px, 2vh, 12px); margin: 1px 0; }
+.ch-card .btn { padding: clamp(2px, 0.8vh, 6px) 3px; font-size: clamp(8px, 1.8vh, 11px); }
+@media (max-height: 480px) {
+  .ch-card .face { font-size: 22px; }
+  .ch-card h4 { font-size: 11px; }
+}
