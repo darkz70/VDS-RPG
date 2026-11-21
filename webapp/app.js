@@ -193,12 +193,12 @@ async function renderMapGrid() {
 /* ── Ранкед ── */
 var RANKS_UI = [
   { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
-  { min: 100,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
-  { min: 500,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
-  { min: 1000, name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
-  { min: 1600, name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
-  { min: 2400, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая" },
-  { min: 3400, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный" },
+  { min: 250,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
+  { min: 700,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
+  { min: 1500, name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
+  { min: 2500, name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
+  { min: 4000, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая" },
+  { min: 5000, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный" },
 ];
 function rankFor(mmr) {
   var r = RANKS_UI[0];
