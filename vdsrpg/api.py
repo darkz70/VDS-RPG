@@ -463,6 +463,35 @@ def api_battle_start():
     return api_ok({"battle": r["battle"], "state": engine.public_state(player)})
 
 
+@app.post("/api/profile/customize")
+def api_profile_customize():
+    player, err = _auth_player()
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    prof = player.setdefault("profile", {"icon": "🌒", "frame": "none", "title": "Новичок", "bg": "default"})
+    if "icon" in body:
+        if body["icon"] not in D.PROFILE_ICONS:
+            return jsonify({"ok": False, "error": "Недопустимая иконка"}), 400
+        prof["icon"] = body["icon"]
+    if "frame" in body:
+        keys = [f["key"] for f in D.PROFILE_FRAMES]
+        if body["frame"] not in keys:
+            return jsonify({"ok": False, "error": "Недопустимая рамка"}), 400
+        prof["frame"] = body["frame"]
+    if "title" in body:
+        if body["title"] not in D.PROFILE_TITLES:
+            return jsonify({"ok": False, "error": "Недопустимый титул"}), 400
+        prof["title"] = body["title"]
+    if "bg" in body:
+        keys = [b["key"] for b in D.PROFILE_BACKGROUNDS]
+        if body["bg"] not in keys:
+            return jsonify({"ok": False, "error": "Недопустимый фон"}), 400
+        prof["bg"] = body["bg"]
+    _save(player)
+    return api_ok({"profile": prof, "state": engine.public_state(player)})
+
+
 @app.post("/api/ranked/online")
 def api_ranked_online():
     player, err = _auth_player()

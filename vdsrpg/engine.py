@@ -25,6 +25,7 @@ def new_player(tg_id: int, name: str) -> dict:
         "egez": D.START_EGEZ,   # валюта открытия колод
         "gacha_free_claimed": False,  # одна бесплатная крутка навсегда
         "ranked": {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0},
+        "profile": {"icon": "🌒", "frame": "none", "title": "Новичок", "bg": "default"},
         "scrolls": 0,
         "team": [],             # id персонажей в команде
         "characters": [],       # список персонажей игрока
@@ -749,6 +750,7 @@ def public_state(player: dict) -> dict:
         "material_cd": player["material_cd"],
         "ranked": player.get("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0}),
         "ranked_series": player.get("ranked_series"),
+        "profile": player.get("profile", {"icon": "🌒", "frame": "none", "title": "Новичок", "bg": "default"}),
         "gacha_free_used": bool(player.get("gacha_free_claimed")),
     }
 

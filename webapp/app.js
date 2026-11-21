@@ -191,6 +191,17 @@ async function renderMapGrid() {
 }
 
 /* ── Ранкед ── */
+var DRAFT_VALID = [
+  [1,3,5],[1,2,4],[1,4,5],[1,2,5],[2,3,5],[2,4,5],[2,4,6],[3,4,5],[3,4,6],[3,5,6],[4,5,6]
+]; // исключены [1,2,3] и [1,5,6]
+function draftValid(picks) {
+  var sorted = picks.slice().sort(function(a,b){return a-b;});
+  for (var i = 0; i < DRAFT_VALID.length; i++) {
+    var c = DRAFT_VALID[i];
+    if (c[0]===sorted[0] && c[1]===sorted[1] && c[2]===sorted[2]) return true;
+  }
+  return false;
+}
 var RANK_RULES_UI = {
   "Деревянный": { wins: 1, ban: 0,  win: "30-50",  lose: "5-10",  req: "" },
   "Каменный":   { wins: 1, ban: 0,  win: "30-50",  lose: "10-15", req: "" },
@@ -223,7 +234,7 @@ function renderRanked() {
   RANKS_UI.forEach(function (r) {
     if (r.group !== lastGroup) { list += '<div class="rank-group">' + r.group + '</div>'; lastGroup = r.group; }
     var cls = (r.name === cur.name) ? " on" : "";
-    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div><b>' + r.name + '</b><span class="muted">от ' + r.min + ' MMR</span></div>' + (r.name === cur.name ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
+    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div><b>' + r.name + '</b><span class="muted"> · от ' + r.min + ' MMR</span></div>' + (r.name === cur.name ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
   });
   screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой · лига «' + cur.group + '»</h3>' +
     '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
@@ -243,6 +254,7 @@ async function rankedStart() {
   var cur = rankFor((STATE && STATE.ranked ? STATE.ranked.mmr : 0));
   var rule = RANK_RULES_UI[cur.name] || {};
   var banCount = rule.ban || 0;
+  if (banCount >= 5) { return draftStart(banCount); }
   if (banCount > 0) {
     // выбор банов из персонажей соперника (мы не знаем их заранее) — поэтому баним по своим, сервер фильтрует по имени
     var chars = (STATE && STATE.characters) || [];
@@ -288,6 +300,43 @@ async function rankedStartGo(banCount, picksFromModal) {
   render();
   }, wait);
   } catch (e) { toast("Ошибка: " + (e && e.message || e)); }
+}
+
+
+/* ── Драфт (Алмазная+ лига) ── */
+var DRAFT = null;
+function draftStart(banCount) {
+  DRAFT = { ban: banCount, picks: [], turn: 1 };
+  renderDraft();
+}
+function renderDraft() {
+  var chars = (STATE && STATE.characters) || [];
+  var pool = chars.slice(0, 6);
+  var html = '<h3>🎯 Драфт — пик ' + DRAFT.turn + '/6</h3><p class="muted">Ваши пики: ' + DRAFT.picks.join(", ") + '</p><div class="ch-grid" style="max-height:50vh;overflow-y:auto">';
+  pool.forEach(function (c, i) {
+    var taken = DRAFT.picks.indexOf(i + 1) >= 0;
+    html += '<div class="card ch-card' + (taken ? " ban-pick" : "") + '" ' + (taken ? "" : 'onclick="draftPick(' + (i + 1) + ')"') + '><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + '</h4><p class="muted">ур. ' + c.level + '</p></div>';
+  });
+  html += '</div>';
+  if (DRAFT.picks.length === 3) {
+    html += '<button class="btn btn-play" onclick="draftGo()">Готово — ' + DRAFT.picks.join(",") + '</button>';
+  }
+  openModal(html);
+}
+function draftPick(n) {
+  if (DRAFT.picks.indexOf(n) >= 0) return;
+  DRAFT.picks.push(n);
+  DRAFT.turn++;
+  renderDraft();
+}
+function draftGo() {
+  if (!draftValid(DRAFT.picks)) { toast("❌ Недопустимая комбинация пиков"); return; }
+  var names = [];
+  var chars = (STATE && STATE.characters) || [];
+  DRAFT.picks.forEach(function (i) { if (chars[i - 1]) names.push(chars[i - 1].name); });
+  DRAFT = null;
+  closeModal();
+  rankedStartGo(0, names);
 }
 
 /* ── Бой ── */
@@ -338,6 +387,7 @@ function renderBattle() {
 function setStance(cid, st) { STANCE[cid] = st; renderBattle(); }
 function battleEnd(r) {
   var win = BATTLE.win;
+  var wasRanked = !!BATTLE.opponent;
   if (r.state) { STATE = r.state; renderChip(); }
   var w = r.rewards || {};
   var parts = [];
@@ -355,7 +405,7 @@ function battleEnd(r) {
     (r.levelups && r.levelups.length
       ? '<p style="color:var(--good);font-weight:700">⭐ Новый уровень: ' + esc(r.levelups.join(", ")) + '</p>' : "") +
     '<div class="log" style="text-align:left">' + log + '</div>' +
-    '<button class="btn btn-play" style="margin-top:12px" onclick="TAB=\'map\';render()">🗺 К карте</button>' +
+    '<button class="btn btn-play" style="margin-top:12px" onclick="TAB=\'' + (wasRanked ? "ranked" : "map") + '\';render()">' + (wasRanked ? "🏆 В ранкед" : "🗺 К карте") + '</button>' +
     '<button class="btn" style="margin-top:8px" onclick="TAB=\'menu\';render()">🏠 В меню</button></div>';
 }
 
@@ -537,19 +587,69 @@ async function claimBrew(bid) { var r = await api("/api/brew/claim", { brew_id: 
 async function usePotion(pid) { var r = await api("/api/potion/use", { potion_id: pid }); toast(r.ok ? "Использовано" : r.error); refresh(); }
 
 /* ── Профиль ── */
+var PROFILE_ICONS = ["🌒","🩸","🔥","🧊","🕳️","🌀","💀","✨","⚡","🌿","💎","⚙️","👑","🐉","🦂","🐺","🦅","🎯","🎲","🃏","🏆","⚔️"];
+var PROFILE_FRAMES = [
+  { key: "none",   name: "Без рамки",   cls: "" },
+  { key: "bronze", name: "Бронза",      cls: "frame-bronze" },
+  { key: "silver", name: "Серебро",     cls: "frame-silver" },
+  { key: "gold",   name: "Золото",      cls: "frame-gold" },
+  { key: "dark",   name: "Тьма",        cls: "frame-dark" },
+  { key: "neon",   name: "Неон",        cls: "frame-neon" },
+  { key: "fire",   name: "Пламя",       cls: "frame-fire" },
+  { key: "frost",  name: "Лёд",         cls: "frame-frost" },
+];
+var PROFILE_TITLES = ["Новичок", "Воин Тьмы", "Искатель", "Разрушитель", "Повелитель", "Легенда Арены", "Мастер Клинка", "Хранитель Пустоты", "Чемпион", "Неуязвимый"];
+var PROFILE_BACKGROUNDS = [
+  { key: "default", name: "По умолчанию", cls: "" },
+  { key: "space",   name: "Космос",       cls: "bg-space" },
+  { key: "ember",   name: "Угли",         cls: "bg-ember" },
+  { key: "abyss",   name: "Бездна",       cls: "bg-abyss" },
+  { key: "royal",   name: "Королевский",  cls: "bg-royal" },
+];
+
 function renderProfile() {
-  var html = '<div class="panel"><h3>👤 ' + esc(STATE.name || "") + '</h3>' +
-    '<div class="row"><span>Уровень</span><b>⭐ ' + (STATE.level || 1) + '</b></div>' +
+  var prof = (STATE && STATE.profile) || { icon: "🌒", frame: "none", title: "Новичок", bg: "default" };
+  var frameCls = "";
+  PROFILE_FRAMES.forEach(function (f) { if (f.key === prof.frame) frameCls = f.cls; });
+  var bgCls = "";
+  PROFILE_BACKGROUNDS.forEach(function (b) { if (b.key === prof.bg) bgCls = b.cls; });
+  var icons = "";
+  PROFILE_ICONS.forEach(function (ic) {
+    icons += '<button class="pf-icon' + (prof.icon === ic ? " on" : "") + '" onclick="profileSet(\'icon\',\'' + ic + '\')">' + ic + '</button>';
+  });
+  var frames = "";
+  PROFILE_FRAMES.forEach(function (f) {
+    frames += '<button class="btn small' + (prof.frame === f.key ? " on" : "") + '" onclick="profileSet(\'frame\',\'' + f.key + '\')">' + f.name + '</button>';
+  });
+  var titles = "";
+  PROFILE_TITLES.forEach(function (t) {
+    titles += '<button class="btn small' + (prof.title === t ? " on" : "") + '" onclick="profileSet(\'title\',\'' + t + '\')">' + t + '</button>';
+  });
+  var bgs = "";
+  PROFILE_BACKGROUNDS.forEach(function (b) {
+    bgs += '<button class="btn small' + (prof.bg === b.key ? " on" : "") + '" onclick="profileSet(\'bg\',\'' + b.key + '\')">' + b.name + '</button>';
+  });
+  var html = '<div class="panel profile-panel ' + bgCls + '"><div class="pf-head ' + frameCls + '"><div class="pf-face">' + prof.icon + '</div><div><h3>' + esc(STATE.name || "") + '</h3><p class="muted">' + prof.title + ' · ⭐ ' + (STATE.level || 1) + '</p></div></div>' +
     '<div class="row"><span>Опыт</span><b>' + fmt(STATE.xp) + ' / ' + fmt(STATE.xp_need || 0) + '</b></div>' +
     '<div class="row"><span>Глава</span><b>' + (STATE.chapter || 1) + '</b></div>' +
     '<div class="row"><span>Свитки боссов</span><b>' + fmt(STATE.boss_scroll_claimed || 0) + '</b></div>' +
     '<div class="row"><span>' + IC_DARK + ' Тьма</span><b>' + fmt(STATE.darkness) + '</b></div>' +
     '<div class="row"><span>' + IC_EGEZ + ' Э Gez</span><b>' + fmt(STATE.egez) + '</b></div>' +
     '<div class="row"><span>Персонажей</span><b>' + (STATE.characters || []).length + '</b></div>' +
-    '<p class="muted" style="margin-top:10px">Бонус опыта: ' + (STATE.exp_boost || 50) + '%</p></div>';
+    '<p class="muted" style="margin-top:10px">Бонус опыта: ' + (STATE.exp_boost || 50) + '%</p>' +
+    '<div class="pf-section"><b>Иконка</b><div class="pf-icons">' + icons + '</div></div>' +
+    '<div class="pf-section"><b>Рамка</b><div class="pf-btns">' + frames + '</div></div>' +
+    '<div class="pf-section"><b>Титул</b><div class="pf-btns">' + titles + '</div></div>' +
+    '<div class="pf-section"><b>Фон</b><div class="pf-btns">' + bgs + '</div></div></div>';
   html += '<div class="panel"><h3>🎟 Промокод</h3><div style="display:flex;gap:8px"><input id="promo-code" placeholder="КОД" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--line2);background:rgba(0,0,0,.3);color:var(--text);font:inherit"><button class="btn" onclick="redeemPromo()">Получить</button></div></div>';
   screen.innerHTML = html;
 }
+async function profileSet(key, value) {
+  var body = {}; body[key] = value;
+  var r = await api("/api/profile/customize", body);
+  if (r.ok) { STATE = r.state || STATE; renderProfile(); } else toast(r.error);
+}
+
 async function redeemPromo() {
   var code = ($("#promo-code") ? $("#promo-code").value : "").trim().toUpperCase();
   if (!code) { toast("Введите код"); return; }

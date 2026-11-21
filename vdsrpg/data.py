@@ -349,3 +349,26 @@ RANK_RULES = {
     "emerald":  {"wins": 3, "ban": 10, "win": (10, 40), "lose": (20, 40), "req_chars": 20, "req_lvl": 15},
     "pro":      {"wins": 3, "ban": 15, "win": (10, 20), "lose": (15, 20), "req_chars": 25, "req_lvl": 18},
 }
+
+# ---------------------------------------------------------------------------
+# Кастомизация профиля (как в Brawl Stars)
+# ---------------------------------------------------------------------------
+PROFILE_ICONS = ["🌒","🩸","🔥","🧊","🕳️","🌀","💀","✨","⚡","🌿","💎","⚙️","👑","🐉","🦂","🐺","🦅","🎯","🎲","🃏","🏆","⚔️"]
+PROFILE_FRAMES = [
+    {"key": "none",   "name": "Без рамки",   "cls": ""},
+    {"key": "bronze", "name": "Бронза",      "cls": "frame-bronze"},
+    {"key": "silver", "name": "Серебро",     "cls": "frame-silver"},
+    {"key": "gold",   "name": "Золото",      "cls": "frame-gold"},
+    {"key": "dark",   "name": "Тьма",        "cls": "frame-dark"},
+    {"key": "neon",   "name": "Неон",        "cls": "frame-neon"},
+    {"key": "fire",   "name": "Пламя",       "cls": "frame-fire"},
+    {"key": "frost",  "name": "Лёд",         "cls": "frame-frost"},
+]
+PROFILE_TITLES = ["Новичок", "Воин Тьмы", "Искатель", "Разрушитель", "Повелитель", "Легенда Арены", "Мастер Клинка", "Хранитель Пустоты", "Чемпион", "Неуязвимый"]
+PROFILE_BACKGROUNDS = [
+    {"key": "default", "name": "По умолчанию", "cls": ""},
+    {"key": "space",   "name": "Космос",       "cls": "bg-space"},
+    {"key": "ember",   "name": "Угли",         "cls": "bg-ember"},
+    {"key": "abyss",   "name": "Бездна",       "cls": "bg-abyss"},
+    {"key": "royal",   "name": "Королевский",  "cls": "bg-royal"},
+]
