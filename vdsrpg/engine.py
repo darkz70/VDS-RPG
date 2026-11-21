@@ -428,7 +428,7 @@ def ranked_start(player: dict, opponent: dict | None = None) -> dict:
         return {"ok": False, "error": "Соперник не найден"}
     sess = {
         "chapter": 1, "loc": 1, "theme": "Ранговая арена", "ranked": True,
-        "opponent": opp_name,
+        "opponent": opp_name, "opponent_is_bot": not (opponent and opponent.get("characters")),
         "fighters": fighters, "enemies": enemies,
         "chances": dict(player["chances"]),
         "round": 1, "log": [title + f" · Ранг: {rank_for_mmr(mmr)['name']} · MMR {mmr}"],
@@ -757,7 +757,7 @@ def _battle_setup(player, chapter, loc_n):
 def _sess_public(sess):
     return {
         "chapter": sess["chapter"], "loc": sess["loc"], "round": sess["round"],
-        "theme": sess["theme"], "log": sess["log"][-30:], "opponent": sess.get("opponent"),
+        "theme": sess["theme"], "log": sess["log"][-30:], "opponent": sess.get("opponent"), "opponent_is_bot": sess.get("opponent_is_bot"),
         "fighters": [{"char_id": f["char_id"], "name": f["name"], "hp": max(0, f["hp"]), "max_hp": f["max_hp"], "level": f["level"], "defending": f["defending"]} for f in sess["fighters"]],
         "enemies": [{"idx": e["idx"], "name": e["name"], "mtype": e["mtype"], "hp": max(0, e["hp"]), "max_hp": e["max_hp"]} for e in sess["enemies"]],
         "over": sess["over"], "win": sess.get("win"),

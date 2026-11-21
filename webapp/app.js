@@ -274,7 +274,7 @@ function renderBattle() {
   var log = "";
   (s.log || []).forEach(function (l) { log += '<div>' + esc(l) + '</div>'; });
   screen.innerHTML =
-    '<div class="panel"><h3>' + (s.opponent ? "🏆 " + esc(s.opponent) : "⚔️ Глава " + s.chapter + " · локация " + s.loc) + " — раунд " + s.round + '</h3>' +
+    '<div class="panel"><h3>' + (s.opponent ? "🏆 " + esc(s.opponent) + (s.opponent_is_bot ? " 🤖" : " 👤") : "⚔️ Глава " + s.chapter + " · локация " + s.loc) + " — раунд " + s.round + '</h3>' +
       '<div class="arena">' + you + foes + '</div>' +
       '<div class="battle-controls"><button class="btn" onclick="battleTurn()">⚔️ Сделать ход</button><button class="btn small" onclick="TAB=\'map\';BATTLE=null;render()">↩ Назад</button></div>' +
       '<div class="log">' + log + '</div></div>';
