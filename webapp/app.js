@@ -193,12 +193,12 @@ async function renderMapGrid() {
 /* ── Ранкед ── */
 var RANKS_UI = [
   { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
-  { min: 50,   name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
-  { min: 250,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
-  { min: 500,  name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
-  { min: 800,  name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
-  { min: 1200, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая" },
-  { min: 1700, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный" },
+  { min: 100,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
+  { min: 500,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
+  { min: 1000, name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
+  { min: 1600, name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
+  { min: 2400, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая" },
+  { min: 3400, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный" },
 ];
 function rankFor(mmr) {
   var r = RANKS_UI[0];
@@ -210,12 +210,13 @@ function renderRanked() {
   var cur = rankFor(rk.mmr);
   var next = null;
   for (var i = 0; i < RANKS_UI.length; i++) if (RANKS_UI[i].min > rk.mmr) { next = RANKS_UI[i]; break; }
-  var list = "";
+  var list = "", lastGroup = "";
   RANKS_UI.forEach(function (r) {
+    if (r.group !== lastGroup) { list += '<div class="rank-group">' + r.group + '</div>'; lastGroup = r.group; }
     var cls = (r.name === cur.name) ? " on" : "";
-    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div><b>' + r.name + '</b><span class="muted">' + r.group + ' · от ' + r.min + '</span></div>' + (r.name === cur.name ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
+    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div><b>' + r.name + '</b><span class="muted">от ' + r.min + ' MMR</span></div>' + (r.name === cur.name ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
   });
-  screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой</h3>' +
+  screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой · лига «' + cur.group + '»</h3>' +
     '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
     (next ? '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>' : '<div class="muted">Максимальный ранг</div>') + '</div></div>' +
     '<button class="btn btn-play" onclick="rankedStart()">⚔️ Найти бой</button>' +
