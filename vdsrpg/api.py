@@ -9,7 +9,7 @@ from . import config, engine, tgapi
 from .bot import handle_update
 from .security import parse_user
 from .store import (
-    get_player, save_player, list_players, delete_player,
+    get_player, save_player, list_players, delete_player, find_ranked_opponent,
     get_flag, set_flag, name_taken,
     create_promo, list_promos, delete_promo, redeem_promo,
 )
@@ -471,7 +471,10 @@ def api_ranked_start():
     m = _maintenance_err(player)
     if m:
         return m
-    r = engine.ranked_start(player)
+    # подбор реального соперника по близкому MMR
+    my_mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
+    opp = find_ranked_opponent(config.DB_PATH, player["tg_id"], my_mmr, 200)
+    r = engine.ranked_start(player, opponent=opp)
     if not r.get("ok"):
         return jsonify(r), 400
     _save(player)

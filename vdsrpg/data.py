@@ -331,12 +331,12 @@ CHANCES_FROM_ROUND = 4
 RANKS = [
     {"key": "wood",     "name": "Деревянный",        "img": "/app/img/ranks/wood.png",     "group": "Начальная",        "min": 0},
     {"key": "stone",    "name": "Каменный",          "img": "/app/img/ranks/stone.png",    "group": "Начальная",        "min": 100},
-    {"key": "iron",     "name": "Железный",          "img": "/app/img/ranks/iron.png",     "group": "Начальная",        "min": 250},
-    {"key": "gold",     "name": "Золотой",           "img": "/app/img/ranks/gold.png",     "group": "Продвинутая",      "min": 500},
-    {"key": "diamond",  "name": "Алмазный",          "img": "/app/img/ranks/diamond.png",  "group": "Продвинутая",      "min": 800},
-    {"key": "emerald",  "name": "Изумрудный",        "img": "/app/img/ranks/emerald.png",  "group": "Продвинутая",      "min": 1200},
-    {"key": "pro",      "name": "Профессиональный",  "img": "/app/img/ranks/pro.png",      "group": "Профессиональный", "min": 1700},
+    {"key": "iron",     "name": "Железный",          "img": "/app/img/ranks/iron.png",     "group": "Начальная",        "min": 500},
+    {"key": "gold",     "name": "Золотой",           "img": "/app/img/ranks/gold.png",     "group": "Продвинутая",      "min": 1000},
+    {"key": "diamond",  "name": "Алмазный",          "img": "/app/img/ranks/diamond.png",  "group": "Продвинутая",      "min": 1600},
+    {"key": "emerald",  "name": "Изумрудный",        "img": "/app/img/ranks/emerald.png",  "group": "Продвинутая",      "min": 2400},
+    {"key": "pro",      "name": "Профессиональный",  "img": "/app/img/ranks/pro.png",      "group": "Профессиональный", "min": 3400},
 ]
-RANK_START_MMR = 100
+RANK_START_MMR = 0
 RANK_WIN_MMR = 25
 RANK_LOSE_MMR = 18
