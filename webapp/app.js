@@ -153,7 +153,7 @@ async function renderMap() {
         '</div>' +
         '<div class="bottom">' +
           '<button class="btn small on">🗺 Кампания</button>' +
-          '<button class="btn small" disabled>🏆 Ранкед · скоро</button>' +
+          '<button class="btn small" onclick="TAB=\'ranked\';render()">🏆 Ранкед</button>' +
           '<button class="btn btn-play" onclick="TAB=\'map\';render()">▶ ИГРАТЬ</button>' +
         '</div>' +
       '</div>';
@@ -188,6 +188,49 @@ async function renderMapGrid() {
   });
   screen.innerHTML = '<div class="panel"><h3>🗺 Глава ' + cur.chapter + ' — ' + esc(cur.name || "") + '</h3>' +
     '<div class="chapters">' + chBtns + '</div><div class="locgrid">' + locs + '</div></div>';
+}
+
+/* ── Ранкед ── */
+var RANKS_UI = [
+  { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
+  { min: 100,  name: "Каменный",         name2: "", img: "img/ranks/stone.png",   group: "Начальная" },
+  { min: 250,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
+  { min: 500,  name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
+  { min: 800,  name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
+  { min: 1200, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая" },
+  { min: 1700, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный" },
+];
+function rankFor(mmr) {
+  var r = RANKS_UI[0];
+  for (var i = 0; i < RANKS_UI.length; i++) if (mmr >= RANKS_UI[i].min) r = RANKS_UI[i];
+  return r;
+}
+function renderRanked() {
+  var rk = (STATE && STATE.ranked) || { mmr: 100, wins: 0, losses: 0 };
+  var cur = rankFor(rk.mmr);
+  var next = null;
+  for (var i = 0; i < RANKS_UI.length; i++) if (RANKS_UI[i].min > rk.mmr) { next = RANKS_UI[i]; break; }
+  var list = "";
+  RANKS_UI.forEach(function (r) {
+    var cls = (r.name === cur.name) ? " on" : "";
+    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div><b>' + r.name + '</b><span class="muted">' + r.group + ' · от ' + r.min + '</span></div>' + (r.name === cur.name ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
+  });
+  screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой</h3>' +
+    '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
+    (next ? '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>' : '<div class="muted">Максимальный ранг</div>') + '</div></div>' +
+    '<button class="btn btn-play" onclick="rankedStart()">⚔️ Найти бой</button>' +
+    '<div class="rank-list">' + list + '</div></div>';
+}
+async function rankedStart() {
+  var r = await api("/api/ranked/start", {});
+  if (!r.ok) { toast(r.error); return; }
+  BATTLE = r.battle || r;
+  BATTLE_TARGET = 0;
+  STANCE = {};
+  (BATTLE.fighters || []).forEach(function (f) { STANCE[f.char_id] = "attack"; });
+  if (r.state) { STATE = r.state; renderChip(); }
+  TAB = "battle";
+  render();
 }
 
 /* ── Бой ── */
@@ -648,6 +691,7 @@ function render() {
   if (TAB === "menu") renderMap();
   else if (TAB === "map") renderMapGrid();
   else if (TAB === "battle") renderBattle();
+  else if (TAB === "ranked") renderRanked();
   else if (TAB === "chars") renderChars();
   else if (TAB === "shop") renderShop();
   else if (TAB === "brew") renderBrewing();
