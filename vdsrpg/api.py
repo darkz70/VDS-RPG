@@ -482,7 +482,9 @@ def api_ranked_start():
     # подбор реального соперника по близкому MMR
     my_mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
     opp = find_ranked_opponent(config.DB_PATH, player["tg_id"], my_mmr, 200)
-    r = engine.ranked_start(player, opponent=opp)
+    body = request.get_json(silent=True) or {}
+    bans = body.get("bans") or []
+    r = engine.ranked_start(player, opponent=opp, bans=bans)
     if not r.get("ok"):
         return jsonify(r), 400
     _save(player)

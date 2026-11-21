@@ -191,6 +191,15 @@ async function renderMapGrid() {
 }
 
 /* ── Ранкед ── */
+var RANK_RULES_UI = {
+  "Деревянный": { wins: 1, ban: 0,  win: "30-50",  lose: "5-10",  req: "" },
+  "Каменный":   { wins: 1, ban: 0,  win: "30-50",  lose: "10-15", req: "" },
+  "Железный":   { wins: 2, ban: 0,  win: "20-50",  lose: "15-30", req: "" },
+  "Золотой":    { wins: 2, ban: 3,  win: "20-40",  lose: "15-30", req: "20 персонажей 15+ ур." },
+  "Алмазный":   { wins: 2, ban: 5,  win: "20-40",  lose: "20-30", req: "20 персонажей 15+ ур." },
+  "Изумрудный": { wins: 3, ban: 10, win: "10-40",  lose: "20-40", req: "20 персонажей 15+ ур." },
+  "Профессиональный": { wins: 3, ban: 15, win: "10-20", lose: "15-20", req: "25 персонажей 18+ ур." },
+};
 var RANKS_UI = [
   { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
   { min: 250,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
@@ -220,6 +229,8 @@ function renderRanked() {
     '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
     '<div class="muted">Соперников онлайн: <span id="opp-count">…</span></div>' +
     (next ? '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>' : '<div class="muted">Максимальный ранг</div>') + '</div></div>' +
+    (RANK_RULES_UI[cur.name] && RANK_RULES_UI[cur.name].ban > 0 ? '<div class="muted" style="margin:4px 0">Перед боем: бан ' + RANK_RULES_UI[cur.name].ban + ' персонажей соперника</div>' : "") +
+    (RANK_RULES_UI[cur.name] && RANK_RULES_UI[cur.name].req ? '<div class="muted" style="margin:4px 0">Требование: ' + RANK_RULES_UI[cur.name].req + '</div>' : "") +
     '<button class="btn btn-play" id="ranked-btn" onclick="rankedStart()">⚔️ Найти бой</button>' +
     '<div class="rank-list">' + list + '</div></div>';
   api("/api/ranked/online", {}).then(function (r) {
@@ -228,10 +239,37 @@ function renderRanked() {
   });
 }
 async function rankedStart() {
+  var cur = rankFor((STATE && STATE.ranked ? STATE.ranked.mmr : 0));
+  var rule = RANK_RULES_UI[cur.name] || {};
+  var banCount = rule.ban || 0;
+  if (banCount > 0) {
+    // выбор банов из персонажей соперника (мы не знаем их заранее) — поэтому баним по своим, сервер фильтрует по имени
+    var chars = (STATE && STATE.characters) || [];
+    var picks = [];
+    var html = '<h3>🚫 Бан персонажей (' + banCount + ')</h3><div class="ch-grid" style="max-height:50vh;overflow-y:auto">';
+    chars.forEach(function (c) {
+      html += '<div class="card ch-card" style="cursor:pointer" onclick="this.classList.toggle(\'ban-pick\')"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + '</h4><p class="muted">ур. ' + c.level + '</p></div>';
+    });
+    html += '</div><button class="btn btn-play" onclick="rankedStartGo(' + banCount + ')">Готово</button>';
+    openModal(html);
+    return;
+  }
+  rankedStartGo(0, []);
+}
+async function rankedStartGo(banCount, picksFromModal) {
+  var bans = [];
+  if (banCount > 0) {
+    var sel = document.querySelectorAll(".ban-pick");
+    var names = [];
+    sel.forEach(function (el) { names.push(el.querySelector("h4").textContent); });
+    // передаём имена — сервер фильтрует enemies по имени
+    bans = names.slice(0, banCount);
+    closeModal();
+  }
   var btn = document.getElementById("ranked-btn");
   if (btn) { btn.disabled = true; btn.textContent = "🔎 Ищем соперника…"; }
   var started = Date.now();
-  var r = await api("/api/ranked/start", {});
+  var r = await api("/api/ranked/start", { bans: bans });
   var wait = 0;
   if (r.ok && r.battle && !r.battle.opponent_is_bot) wait = Math.max(0, 1500 - (Date.now() - started));
   setTimeout(function () {

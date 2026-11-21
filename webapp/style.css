@@ -268,3 +268,5 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .rank-row .tag { margin-left: auto; }
 
 .rank-group { margin: 8px 0 2px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #a78bfa; }
+
+.ban-pick { outline: 2px solid #ef4444 !important; opacity: .6; }

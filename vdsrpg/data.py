@@ -338,5 +338,14 @@ RANKS = [
     {"key": "pro",      "name": "Профессиональный",  "img": "/app/img/ranks/pro.png",      "group": "Профессиональный", "min": 5000},
 ]
 RANK_START_MMR = 0
-RANK_WIN_MMR = 25
-RANK_LOSE_MMR = 18
+
+# Правила рангов по Лёше: (wins_needed, ban_count, mmr_win_min..max, mmr_lose_min..max, требования)
+RANK_RULES = {
+    "wood":     {"wins": 1, "ban": 0,  "win": (30, 50), "lose": (5, 10),  "req_chars": 0,  "req_lvl": 0},
+    "stone":    {"wins": 1, "ban": 0,  "win": (30, 50), "lose": (10, 15), "req_chars": 0,  "req_lvl": 0},
+    "iron":     {"wins": 2, "ban": 0,  "win": (20, 50), "lose": (15, 30), "req_chars": 0,  "req_lvl": 0},
+    "gold":     {"wins": 2, "ban": 3,  "win": (20, 40), "lose": (15, 30), "req_chars": 20, "req_lvl": 15},
+    "diamond":  {"wins": 2, "ban": 5,  "win": (20, 40), "lose": (20, 30), "req_chars": 20, "req_lvl": 15},
+    "emerald":  {"wins": 3, "ban": 10, "win": (10, 40), "lose": (20, 40), "req_chars": 20, "req_lvl": 15},
+    "pro":      {"wins": 3, "ban": 15, "win": (10, 20), "lose": (15, 20), "req_chars": 25, "req_lvl": 18},
+}
