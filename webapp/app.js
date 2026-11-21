@@ -215,7 +215,7 @@ function rankFor(mmr) {
   return r;
 }
 function renderRanked() {
-  var rk = (STATE && STATE.ranked) || { mmr: 100, wins: 0, losses: 0 };
+  var rk = (STATE && STATE.ranked) || { mmr: 0, wins: 0, losses: 0 };
   var cur = rankFor(rk.mmr);
   var next = null;
   for (var i = 0; i < RANKS_UI.length; i++) if (RANKS_UI[i].min > rk.mmr) { next = RANKS_UI[i]; break; }
@@ -239,6 +239,7 @@ function renderRanked() {
   });
 }
 async function rankedStart() {
+  try {
   var cur = rankFor((STATE && STATE.ranked ? STATE.ranked.mmr : 0));
   var rule = RANK_RULES_UI[cur.name] || {};
   var banCount = rule.ban || 0;
@@ -255,8 +256,10 @@ async function rankedStart() {
     return;
   }
   rankedStartGo(0, []);
+  } catch (e) { toast("Ошибка: " + (e && e.message || e)); }
 }
 async function rankedStartGo(banCount, picksFromModal) {
+  try {
   var bans = [];
   if (banCount > 0) {
     var sel = document.querySelectorAll(".ban-pick");
@@ -284,6 +287,7 @@ async function rankedStartGo(banCount, picksFromModal) {
   TAB = "battle";
   render();
   }, wait);
+  } catch (e) { toast("Ошибка: " + (e && e.message || e)); }
 }
 
 /* ── Бой ── */
