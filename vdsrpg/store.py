@@ -190,6 +190,19 @@ def find_ranked_opponent(db_path: str, my_tg_id: int, my_mmr: int, mmr_range: in
     return best  # ближайший по MMR, даже если дальше mmr_range
 
 
+def count_ranked_opponents(db_path: str, my_tg_id: int) -> int:
+    """Сколько реальных игроков доступны для подбора."""
+    conn = _get_conn(db_path)
+    with _lock:
+        rows = conn.execute("SELECT data FROM players WHERE tg_id != ?", (my_tg_id,)).fetchall()
+    n = 0
+    for r in rows:
+        d = json.loads(r["data"])
+        if d.get("characters") and d.get("team"):
+            n += 1
+    return n
+
+
 def delete_player(db_path: str, tg_id: int) -> None:
     conn = _get_conn(db_path)
     with _lock:

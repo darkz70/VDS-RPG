@@ -218,20 +218,34 @@ function renderRanked() {
   });
   screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой · лига «' + cur.group + '»</h3>' +
     '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
+    '<div class="muted">Соперников онлайн: <span id="opp-count">…</span></div>' +
     (next ? '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>' : '<div class="muted">Максимальный ранг</div>') + '</div></div>' +
-    '<button class="btn btn-play" onclick="rankedStart()">⚔️ Найти бой</button>' +
+    '<button class="btn btn-play" id="ranked-btn" onclick="rankedStart()">⚔️ Найти бой</button>' +
     '<div class="rank-list">' + list + '</div></div>';
+  api("/api/ranked/online", {}).then(function (r) {
+    var el = document.getElementById("opp-count");
+    if (el) el.textContent = r.ok ? r.count : "0";
+  });
 }
 async function rankedStart() {
+  var btn = document.getElementById("ranked-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "🔎 Ищем соперника…"; }
+  var started = Date.now();
   var r = await api("/api/ranked/start", {});
+  var wait = 0;
+  if (r.ok && r.battle && !r.battle.opponent_is_bot) wait = Math.max(0, 1500 - (Date.now() - started));
+  setTimeout(function () {
+  if (btn) { btn.disabled = false; btn.textContent = "⚔️ Найти бой"; }
   if (!r.ok) { toast(r.error); return; }
   BATTLE = r.battle || r;
   BATTLE_TARGET = 0;
   STANCE = {};
   (BATTLE.fighters || []).forEach(function (f) { STANCE[f.char_id] = "attack"; });
   if (r.state) { STATE = r.state; renderChip(); }
+  if (r.battle) toast(r.battle.opponent_is_bot ? "🤖 Соперник: бот" : "👤 Соперник: " + esc(r.battle.opponent));
   TAB = "battle";
   render();
+  }, wait);
 }
 
 /* ── Бой ── */

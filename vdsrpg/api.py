@@ -9,7 +9,7 @@ from . import config, engine, tgapi
 from .bot import handle_update
 from .security import parse_user
 from .store import (
-    get_player, save_player, list_players, delete_player, find_ranked_opponent,
+    get_player, save_player, list_players, delete_player, find_ranked_opponent, count_ranked_opponents,
     get_flag, set_flag, name_taken,
     create_promo, list_promos, delete_promo, redeem_promo,
 )
@@ -461,6 +461,14 @@ def api_battle_start():
         return jsonify(r), 400
     _save(player)
     return api_ok({"battle": r["battle"], "state": engine.public_state(player)})
+
+
+@app.post("/api/ranked/online")
+def api_ranked_online():
+    player, err = _auth_player()
+    if err:
+        return err
+    return api_ok({"count": count_ranked_opponents(config.DB_PATH, player["tg_id"])})
 
 
 @app.post("/api/ranked/start")
