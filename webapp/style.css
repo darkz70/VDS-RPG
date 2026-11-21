@@ -270,3 +270,25 @@ img.ic { width: 1.4em; height: 1.4em; vertical-align: -0.3em; border-radius: 4px
 .rank-group { margin: 8px 0 2px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #a78bfa; }
 
 .ban-pick { outline: 2px solid #ef4444 !important; opacity: .6; }
+
+/* ══ Профиль: кастомизация ══ */
+.pf-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding: 10px; border-radius: 14px; }
+.pf-face { font-size: clamp(36px, 8vh, 56px); line-height: 1; }
+.pf-icons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.pf-icon { font-size: 22px; padding: 4px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.03); cursor: pointer; }
+.pf-icon.on { outline: 2px solid #a855f7; }
+.pf-section { margin-top: 10px; }
+.pf-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+/* рамки */
+.frame-bronze { border: 2px solid #b45309; }
+.frame-silver { border: 2px solid #9ca3af; }
+.frame-gold   { border: 2px solid #f59e0b; box-shadow: 0 0 10px #f59e0b66; }
+.frame-dark   { border: 2px solid #6366f1; box-shadow: 0 0 12px #6366f166; }
+.frame-neon   { border: 2px solid #22d3ee; box-shadow: 0 0 12px #22d3ee66; }
+.frame-fire   { border: 2px solid #ef4444; box-shadow: 0 0 12px #ef444466; }
+.frame-frost  { border: 2px solid #60a5fa; box-shadow: 0 0 12px #60a5fa66; }
+/* фоны */
+.bg-space  { background: radial-gradient(circle at 30% 20%, #1e1b4b 0%, #0f172a 70%); }
+.bg-ember  { background: radial-gradient(circle at 30% 20%, #7c2d12 0%, #1c0a06 70%); }
+.bg-abyss  { background: radial-gradient(circle at 30% 20%, #134e4a 0%, #042f2e 70%); }
+.bg-royal  { background: radial-gradient(circle at 30% 20%, #581c87 0%, #2e1065 70%); }
