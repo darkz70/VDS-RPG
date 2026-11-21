@@ -324,3 +324,19 @@ CHANCE_LEVEL_STEP = 0.1  # за каждый уровень игрока мож�
 
 # Шансы работают с 4 раунда включительно; после каждого срабатывания шанс падает в 2 раза
 CHANCES_FROM_ROUND = 4
+
+# ---------------------------------------------------------------------------
+# Ранговый бой
+# ---------------------------------------------------------------------------
+RANKS = [
+    {"key": "wood",     "name": "Деревянный",        "img": "/app/img/ranks/wood.png",     "group": "Начальная",        "min": 0},
+    {"key": "stone",    "name": "Каменный",          "img": "/app/img/ranks/stone.png",    "group": "Начальная",        "min": 100},
+    {"key": "iron",     "name": "Железный",          "img": "/app/img/ranks/iron.png",     "group": "Начальная",        "min": 250},
+    {"key": "gold",     "name": "Золотой",           "img": "/app/img/ranks/gold.png",     "group": "Продвинутая",      "min": 500},
+    {"key": "diamond",  "name": "Алмазный",          "img": "/app/img/ranks/diamond.png",  "group": "Продвинутая",      "min": 800},
+    {"key": "emerald",  "name": "Изумрудный",        "img": "/app/img/ranks/emerald.png",  "group": "Продвинутая",      "min": 1200},
+    {"key": "pro",      "name": "Профессиональный",  "img": "/app/img/ranks/pro.png",      "group": "Профессиональный", "min": 1700},
+]
+RANK_START_MMR = 100
+RANK_WIN_MMR = 25
+RANK_LOSE_MMR = 18

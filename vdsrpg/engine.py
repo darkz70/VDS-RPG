@@ -24,6 +24,7 @@ def new_player(tg_id: int, name: str) -> dict:
         "darkness": D.START_DARKNESS,
         "egez": D.START_EGEZ,   # валюта открытия колод
         "gacha_free_claimed": False,  # одна бесплатная крутка навсегда
+        "ranked": {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0},
         "scrolls": 0,
         "team": [],             # id персонажей в команде
         "characters": [],       # список персонажей игрока
@@ -358,6 +359,83 @@ def battle(player: dict, chapter: int, loc_n: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Ранговый бой (бот-соперник на основе вашего отряда)
+# ---------------------------------------------------------------------------
+RANK_BOT_NAMES = ["Тень Арены", "Зеркальный Воин", "Эхо Чемпиона", "Двойник", "Фантом Ранга"]
+
+
+def rank_for_mmr(mmr: int) -> dict:
+    r = D.RANKS[0]
+    for rk in D.RANKS:
+        if mmr >= rk["min"]:
+            r = rk
+    return r
+
+
+def ranked_start(player: dict) -> dict:
+    """Начать ранговый бой с ботом. Сессия — обычная battle_session."""
+    if player.get("battle_session"):
+        return {"ok": False, "error": "Бой уже идёт"}
+    size = team_size(player)
+    team_ids = player["team"][:size]
+    if not team_ids:
+        return {"ok": False, "error": "В команде нет персонажей"}
+    chars = {c["id"]: c for c in player["characters"]}
+    fighters = []
+    for cid in team_ids:
+        c = chars[cid]
+        st = char_stats(c, player)
+        fighters.append({
+            "kind": "player", "ref": c, "char_id": cid, "name": c["name"], "stats": st,
+            "hp": st["hp"], "max_hp": st["hp"], "def": st["def"],
+            "affs": list(c["affinities"]), "dmg_type": c["dmg_type"],
+            "level": c["level"], "evo": c["evo"], "defending": False,
+        })
+    mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
+    bot_mult = 0.85 + min(1.15, mmr / 1500.0)
+    enemies = []
+    for i, cid in enumerate(team_ids):
+        c = chars[cid]
+        st = char_stats(c, player)
+        enemies.append({
+            "kind": "enemy", "idx": i,
+            "name": f"{random.choice(RANK_BOT_NAMES)} {c['name']}", "mtype": "rank",
+            "hp": int(st["hp"] * bot_mult), "max_hp": int(st["hp"] * bot_mult),
+            "def": int(st["def"] * bot_mult), "dmg": char_damage(c, st) * bot_mult,
+            "affs": list(c["affinities"]), "exp": 0,
+        })
+    sess = {
+        "chapter": 1, "loc": 1, "theme": "Ранговая арена", "ranked": True, "bot_mult": bot_mult,
+        "fighters": fighters, "enemies": enemies,
+        "chances": dict(player["chances"]),
+        "round": 1, "log": [f"🏆 Ранговый бой! Ранг: {rank_for_mmr(mmr)['name']} · MMR {mmr}"],
+        "over": False, "win": None, "exp_buff": 0.0, "dark_buff": 0.0,
+    }
+    player["battle_session"] = sess
+    return {"ok": True, "battle": _sess_public(sess)}
+
+
+def _apply_ranked_win(player: dict, sess: dict):
+    r = player.setdefault("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0})
+    r["wins"] += 1
+    r["mmr"] += D.RANK_WIN_MMR
+    egez = 20
+    player["egez"] += egez
+    sess["rewards"] = {"exp": 0, "darkness": 0, "materials": {}, "scroll": False, "egez": egez,
+                       "rank_mmr": D.RANK_WIN_MMR, "rank_name": rank_for_mmr(r["mmr"])["name"]}
+    sess["levelups"] = []
+
+
+def _apply_ranked_lose(player: dict, sess: dict):
+    r = player.setdefault("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0})
+    r["losses"] += 1
+    r["mmr"] = max(0, r["mmr"] - D.RANK_LOSE_MMR)
+    sess["rewards"] = {"exp": 0, "darkness": 0, "materials": {}, "scroll": False, "egez": 0,
+                       "rank_mmr": -D.RANK_LOSE_MMR, "rank_name": rank_for_mmr(r["mmr"])["name"]}
+    sess["levelups"] = []
+
+
+# ---------------------------------------------------------------------------
 # Прокачка персонажа
 # ---------------------------------------------------------------------------
 def upgrade_cost(char: dict, to_level: int) -> int:
@@ -612,6 +690,7 @@ def public_state(player: dict) -> dict:
         "materials": player["materials"], "potions": player["potions"],
         "brews": player["brews"], "buffs": player["buffs"],
         "material_cd": player["material_cd"],
+        "ranked": player.get("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0}),
         "gacha_free_used": bool(player.get("gacha_free_claimed")),
     }
 
@@ -764,7 +843,12 @@ def battle_turn(player: dict, actions: list) -> dict:
     if not alive_e or not alive_f or sess["round"] > 41:
         sess["over"] = True
         sess["win"] = bool(alive_f) and not alive_e
-        if sess["win"]:
+        if sess.get("ranked"):
+            if sess["win"]:
+                _apply_ranked_win(player, sess)
+            else:
+                _apply_ranked_lose(player, sess)
+        elif sess["win"]:
             _apply_battle_win(player, sess)
     out = {"ok": True, "battle": _sess_public(sess)}
     if sess["over"]:

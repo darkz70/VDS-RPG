@@ -463,6 +463,21 @@ def api_battle_start():
     return api_ok({"battle": r["battle"], "state": engine.public_state(player)})
 
 
+@app.post("/api/ranked/start")
+def api_ranked_start():
+    player, err = _auth_player()
+    if err:
+        return err
+    m = _maintenance_err(player)
+    if m:
+        return m
+    r = engine.ranked_start(player)
+    if not r.get("ok"):
+        return jsonify(r), 400
+    _save(player)
+    return api_ok(r)
+
+
 @app.post("/api/battle/turn")
 def api_battle_turn():
     """Сделать один ход в пошаговом бою: actions = [{char_id, type: attack|defend, target: enemy_idx}]."""
