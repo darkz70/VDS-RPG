@@ -372,8 +372,8 @@ def rank_for_mmr(mmr: int) -> dict:
     return r
 
 
-def ranked_start(player: dict) -> dict:
-    """Начать ранговый бой с ботом. Сессия — обычная battle_session."""
+def ranked_start(player: dict, opponent: dict | None = None) -> dict:
+    """Начать ранговый бой. Если передан opponent (другой игрок) — зеркало его отряда и его ник; иначе бот."""
     if player.get("battle_session"):
         return {"ok": False, "error": "Бой уже идёт"}
     size = team_size(player)
@@ -392,23 +392,46 @@ def ranked_start(player: dict) -> dict:
             "level": c["level"], "evo": c["evo"], "defending": False,
         })
     mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
-    bot_mult = 0.85 + min(1.15, mmr / 1500.0)
+    opp_name = None
     enemies = []
-    for i, cid in enumerate(team_ids):
-        c = chars[cid]
-        st = char_stats(c, player)
-        enemies.append({
-            "kind": "enemy", "idx": i,
-            "name": f"{random.choice(RANK_BOT_NAMES)} {c['name']}", "mtype": "rank",
-            "hp": int(st["hp"] * bot_mult), "max_hp": int(st["hp"] * bot_mult),
-            "def": int(st["def"] * bot_mult), "dmg": char_damage(c, st) * bot_mult,
-            "affs": list(c["affinities"]), "exp": 0,
-        })
+    if opponent and opponent.get("characters"):
+        opp_chars = {c["id"]: c for c in opponent["characters"]}
+        opp_team = opponent.get("team", [])[:team_size(opponent)]
+        opp_name = opponent.get("name", "Соперник")
+        for i, cid in enumerate(opp_team):
+            oc = opp_chars.get(cid)
+            if not oc:
+                continue
+            st = char_stats(oc, opponent)
+            enemies.append({
+                "kind": "enemy", "idx": i,
+                "name": oc["name"], "mtype": "rank",
+                "hp": st["hp"], "max_hp": st["hp"], "def": st["def"], "dmg": char_damage(oc, st),
+                "affs": list(oc["affinities"]), "exp": 0,
+            })
+        title = f"🏆 Ранговый бой! Соперник: {opp_name}"
+    else:
+        bot_mult = 0.85 + min(1.15, mmr / 1500.0)
+        opp_name = random.choice(RANK_BOT_NAMES)
+        for i, cid in enumerate(team_ids):
+            c = chars[cid]
+            st = char_stats(c, player)
+            enemies.append({
+                "kind": "enemy", "idx": i,
+                "name": opp_name, "mtype": "rank",
+                "hp": int(st["hp"] * bot_mult), "max_hp": int(st["hp"] * bot_mult),
+                "def": int(st["def"] * bot_mult), "dmg": char_damage(c, st) * bot_mult,
+                "affs": list(c["affinities"]), "exp": 0,
+            })
+        title = f"🏆 Ранговый бой! Бот: {opp_name}"
+    if not enemies:
+        return {"ok": False, "error": "Соперник не найден"}
     sess = {
-        "chapter": 1, "loc": 1, "theme": "Ранговая арена", "ranked": True, "bot_mult": bot_mult,
+        "chapter": 1, "loc": 1, "theme": "Ранговая арена", "ranked": True,
+        "opponent": opp_name,
         "fighters": fighters, "enemies": enemies,
         "chances": dict(player["chances"]),
-        "round": 1, "log": [f"🏆 Ранговый бой! Ранг: {rank_for_mmr(mmr)['name']} · MMR {mmr}"],
+        "round": 1, "log": [title + f" · Ранг: {rank_for_mmr(mmr)['name']} · MMR {mmr}"],
         "over": False, "win": None, "exp_buff": 0.0, "dark_buff": 0.0,
     }
     player["battle_session"] = sess
@@ -734,7 +757,7 @@ def _battle_setup(player, chapter, loc_n):
 def _sess_public(sess):
     return {
         "chapter": sess["chapter"], "loc": sess["loc"], "round": sess["round"],
-        "theme": sess["theme"], "log": sess["log"][-30:],
+        "theme": sess["theme"], "log": sess["log"][-30:], "opponent": sess.get("opponent"),
         "fighters": [{"char_id": f["char_id"], "name": f["name"], "hp": max(0, f["hp"]), "max_hp": f["max_hp"], "level": f["level"], "defending": f["defending"]} for f in sess["fighters"]],
         "enemies": [{"idx": e["idx"], "name": e["name"], "mtype": e["mtype"], "hp": max(0, e["hp"]), "max_hp": e["max_hp"]} for e in sess["enemies"]],
         "over": sess["over"], "win": sess.get("win"),

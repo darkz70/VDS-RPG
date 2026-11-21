@@ -193,7 +193,7 @@ async function renderMapGrid() {
 /* ── Ранкед ── */
 var RANKS_UI = [
   { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
-  { min: 100,  name: "Каменный",         name2: "", img: "img/ranks/stone.png",   group: "Начальная" },
+  { min: 50,   name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
   { min: 250,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
   { min: 500,  name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
   { min: 800,  name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
@@ -273,7 +273,7 @@ function renderBattle() {
   var log = "";
   (s.log || []).forEach(function (l) { log += '<div>' + esc(l) + '</div>'; });
   screen.innerHTML =
-    '<div class="panel"><h3>⚔️ Глава ' + s.chapter + ' · локация ' + s.loc + ' — раунд ' + s.round + '</h3>' +
+    '<div class="panel"><h3>' + (s.opponent ? "🏆 " + esc(s.opponent) : "⚔️ Глава " + s.chapter + " · локация " + s.loc) + " — раунд " + s.round + '</h3>' +
       '<div class="arena">' + you + foes + '</div>' +
       '<div class="battle-controls"><button class="btn" onclick="battleTurn()">⚔️ Сделать ход</button><button class="btn small" onclick="TAB=\'map\';BATTLE=null;render()">↩ Назад</button></div>' +
       '<div class="log">' + log + '</div></div>';

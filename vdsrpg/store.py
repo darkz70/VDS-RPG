@@ -170,6 +170,23 @@ def list_players(db_path: str) -> list[dict]:
     return out
 
 
+def find_ranked_opponent(db_path: str, my_tg_id: int, my_mmr: int, mmr_range: int = 200):
+    """Подобрать реального соперника с близким MMR (полные данные)."""
+    conn = _get_conn(db_path)
+    with _lock:
+        rows = conn.execute("SELECT tg_id, data FROM players WHERE tg_id != ?", (my_tg_id,)).fetchall()
+    best, best_diff = None, None
+    for r in rows:
+        d = json.loads(r["data"])
+        if not d.get("characters") or not d.get("team"):
+            continue
+        om = d.get("ranked", {}).get("mmr", 0)
+        diff = abs(om - my_mmr)
+        if diff <= mmr_range and (best_diff is None or diff < best_diff):
+            best, best_diff = d, diff
+    return best
+
+
 def delete_player(db_path: str, tg_id: int) -> None:
     conn = _get_conn(db_path)
     with _lock:
