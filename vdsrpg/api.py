@@ -520,6 +520,24 @@ def api_ranked_start():
     return api_ok(r)
 
 
+@app.post("/api/battle/abandon")
+def api_battle_abandon():
+    player, err = _auth_player()
+    if err:
+        return err
+    sess = player.get("battle_session")
+    if not sess:
+        return jsonify({"ok": False, "error": "Нет активного боя"}), 400
+    if sess.get("ranked"):
+        engine._apply_ranked_lose(player, sess, abandoned=True)
+        player["battle_session"] = None
+        _save(player)
+        return api_ok({"abandoned": True, "ban_min": 30, "state": engine.public_state(player)})
+    player["battle_session"] = None
+    _save(player)
+    return api_ok({"abandoned": True, "state": engine.public_state(player)})
+
+
 @app.post("/api/battle/turn")
 def api_battle_turn():
     """Сделать один ход в пошаговом бою: actions = [{char_id, type: attack|defend, target: enemy_idx}]."""

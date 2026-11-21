@@ -377,6 +377,10 @@ def ranked_start(player: dict, opponent: dict | None = None, bans: list | None =
     """Начать ранговый бой. Если передан opponent (другой игрок) — зеркало его отряда и его ник; иначе бот."""
     if player.get("battle_session"):
         return {"ok": False, "error": "Бой уже идёт"}
+    ban_until = player.get("ranked_ban_until", 0)
+    if time.time() < ban_until:
+        left = int((ban_until - time.time()) / 60) + 1
+        return {"ok": False, "error": f"🚫 Вы покинули бой — бан на {left} мин"}
     mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
     rk = rank_for_mmr(mmr)
     rule = D.RANK_RULES.get(rk["key"], {})
@@ -477,7 +481,7 @@ def _apply_ranked_win(player: dict, sess: dict):
     sess["levelups"] = []
 
 
-def _apply_ranked_lose(player: dict, sess: dict):
+def _apply_ranked_lose(player: dict, sess: dict, abandoned: bool = False):
     r = player.setdefault("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0})
     rule = sess.get("rank_rule") or {}
     rng = rule.get("lose", (5, 10))
@@ -486,10 +490,13 @@ def _apply_ranked_lose(player: dict, sess: dict):
     r["mmr"] = max(0, r["mmr"] - loss)
     series = player.setdefault("ranked_series", {"key": sess.get("rank_key"), "wins": 0, "games": 0})
     series["games"] += 1
+    if abandoned:
+        player["ranked_ban_until"] = time.time() + 30 * 60
     sess["rewards"] = {"exp": 0, "darkness": 0, "materials": {}, "scroll": False, "egez": 0,
                        "rank_mmr": -loss, "rank_name": rank_for_mmr(r["mmr"])["name"],
                        "series_wins": series["wins"], "series_need": rule.get("wins", 1),
-                       "series_done": False}
+                       "series_done": False, "abandoned": abandoned,
+                       "ban_min": 30 if abandoned else 0}
     sess["levelups"] = []
 
 

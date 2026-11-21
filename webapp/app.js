@@ -381,7 +381,7 @@ function renderBattle() {
   screen.innerHTML =
     '<div class="panel"><h3>' + (s.opponent ? "🏆 " + esc(s.opponent) + (s.opponent_is_bot ? " 🤖" : " 👤") : "⚔️ Глава " + s.chapter + " · локация " + s.loc) + " — раунд " + s.round + '</h3>' +
       '<div class="arena">' + you + foes + '</div>' +
-      '<div class="battle-controls"><button class="btn" onclick="battleTurn()">⚔️ Сделать ход</button><button class="btn small" onclick="TAB=\'map\';BATTLE=null;render()">↩ Назад</button></div>' +
+      '<div class="battle-controls"><button class="btn" onclick="battleTurn()">⚔️ Сделать ход</button><button class="btn small" onclick="abandonBattle()">🏳 Сдаться</button></div>' +
       '<div class="log">' + log + '</div></div>';
 }
 function setStance(cid, st) { STANCE[cid] = st; renderBattle(); }
@@ -409,6 +409,16 @@ function battleEnd(r) {
     '<button class="btn" style="margin-top:8px" onclick="TAB=\'menu\';render()">🏠 В меню</button></div>';
 }
 
+async function abandonBattle() {
+  if (!BATTLE) return;
+  if (BATTLE.opponent) {
+    if (!confirm("Сдаться? Это поражение + бан 30 мин")) return;
+    var r = await api("/api/battle/abandon", {});
+    if (r.ok) { BATTLE = null; toast("💀 Поражение. Бан 30 мин"); STATE = r.state || STATE; renderChip(); TAB = "ranked"; render(); return; }
+    toast(r.error); return;
+  }
+  BATTLE = null; TAB = "map"; render();
+}
 async function battleTurn() {
   var actions = [];
   (BATTLE.fighters || []).forEach(function (u) {
