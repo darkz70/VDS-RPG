@@ -191,6 +191,15 @@ async function renderMapGrid() {
 }
 
 /* ── Ранкед ── */
+var RANK_RULES_UI = {
+  "Деревянный": { wins: 1, ban: 0,  win: "30-50",  lose: "5-10",  req: "" },
+  "Каменный":   { wins: 1, ban: 0,  win: "30-50",  lose: "10-15", req: "" },
+  "Железный":   { wins: 2, ban: 0,  win: "20-50",  lose: "15-30", req: "" },
+  "Золотой":    { wins: 2, ban: 3,  win: "20-40",  lose: "15-30", req: "20 персонажей 15+ ур." },
+  "Алмазный":   { wins: 2, ban: 5,  win: "20-40",  lose: "20-30", req: "20 персонажей 15+ ур." },
+  "Изумрудный": { wins: 3, ban: 10, win: "10-40",  lose: "20-40", req: "20 персонажей 15+ ур." },
+  "Профессиональный": { wins: 3, ban: 15, win: "10-20", lose: "15-20", req: "25 персонажей 18+ ур." },
+};
 var RANKS_UI = [
   { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
   { min: 250,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
@@ -218,20 +227,63 @@ function renderRanked() {
   });
   screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой · лига «' + cur.group + '»</h3>' +
     '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
+    '<div class="muted">Соперников онлайн: <span id="opp-count">…</span></div>' +
     (next ? '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>' : '<div class="muted">Максимальный ранг</div>') + '</div></div>' +
-    '<button class="btn btn-play" onclick="rankedStart()">⚔️ Найти бой</button>' +
+    (RANK_RULES_UI[cur.name] && RANK_RULES_UI[cur.name].ban > 0 ? '<div class="muted" style="margin:4px 0">Перед боем: бан ' + RANK_RULES_UI[cur.name].ban + ' персонажей соперника</div>' : "") +
+    (RANK_RULES_UI[cur.name] && RANK_RULES_UI[cur.name].req ? '<div class="muted" style="margin:4px 0">Требование: ' + RANK_RULES_UI[cur.name].req + '</div>' : "") +
+    '<button class="btn btn-play" id="ranked-btn" onclick="rankedStart()">⚔️ Найти бой</button>' +
     '<div class="rank-list">' + list + '</div></div>';
+  api("/api/ranked/online", {}).then(function (r) {
+    var el = document.getElementById("opp-count");
+    if (el) el.textContent = r.ok ? r.count : "0";
+  });
 }
 async function rankedStart() {
-  var r = await api("/api/ranked/start", {});
+  var cur = rankFor((STATE && STATE.ranked ? STATE.ranked.mmr : 0));
+  var rule = RANK_RULES_UI[cur.name] || {};
+  var banCount = rule.ban || 0;
+  if (banCount > 0) {
+    // выбор банов из персонажей соперника (мы не знаем их заранее) — поэтому баним по своим, сервер фильтрует по имени
+    var chars = (STATE && STATE.characters) || [];
+    var picks = [];
+    var html = '<h3>🚫 Бан персонажей (' + banCount + ')</h3><div class="ch-grid" style="max-height:50vh;overflow-y:auto">';
+    chars.forEach(function (c) {
+      html += '<div class="card ch-card" style="cursor:pointer" onclick="this.classList.toggle(\'ban-pick\')"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + '</h4><p class="muted">ур. ' + c.level + '</p></div>';
+    });
+    html += '</div><button class="btn btn-play" onclick="rankedStartGo(' + banCount + ')">Готово</button>';
+    openModal(html);
+    return;
+  }
+  rankedStartGo(0, []);
+}
+async function rankedStartGo(banCount, picksFromModal) {
+  var bans = [];
+  if (banCount > 0) {
+    var sel = document.querySelectorAll(".ban-pick");
+    var names = [];
+    sel.forEach(function (el) { names.push(el.querySelector("h4").textContent); });
+    // передаём имена — сервер фильтрует enemies по имени
+    bans = names.slice(0, banCount);
+    closeModal();
+  }
+  var btn = document.getElementById("ranked-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "🔎 Ищем соперника…"; }
+  var started = Date.now();
+  var r = await api("/api/ranked/start", { bans: bans });
+  var wait = 0;
+  if (r.ok && r.battle && !r.battle.opponent_is_bot) wait = Math.max(0, 1500 - (Date.now() - started));
+  setTimeout(function () {
+  if (btn) { btn.disabled = false; btn.textContent = "⚔️ Найти бой"; }
   if (!r.ok) { toast(r.error); return; }
   BATTLE = r.battle || r;
   BATTLE_TARGET = 0;
   STANCE = {};
   (BATTLE.fighters || []).forEach(function (f) { STANCE[f.char_id] = "attack"; });
   if (r.state) { STATE = r.state; renderChip(); }
+  if (r.battle) toast(r.battle.opponent_is_bot ? "🤖 Соперник: бот" : "👤 Соперник: " + esc(r.battle.opponent));
   TAB = "battle";
   render();
+  }, wait);
 }
 
 /* ── Бой ── */
@@ -274,7 +326,7 @@ function renderBattle() {
   var log = "";
   (s.log || []).forEach(function (l) { log += '<div>' + esc(l) + '</div>'; });
   screen.innerHTML =
-    '<div class="panel"><h3>' + (s.opponent ? "🏆 " + esc(s.opponent) : "⚔️ Глава " + s.chapter + " · локация " + s.loc) + " — раунд " + s.round + '</h3>' +
+    '<div class="panel"><h3>' + (s.opponent ? "🏆 " + esc(s.opponent) + (s.opponent_is_bot ? " 🤖" : " 👤") : "⚔️ Глава " + s.chapter + " · локация " + s.loc) + " — раунд " + s.round + '</h3>' +
       '<div class="arena">' + you + foes + '</div>' +
       '<div class="battle-controls"><button class="btn" onclick="battleTurn()">⚔️ Сделать ход</button><button class="btn small" onclick="TAB=\'map\';BATTLE=null;render()">↩ Назад</button></div>' +
       '<div class="log">' + log + '</div></div>';

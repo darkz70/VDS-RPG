@@ -372,10 +372,19 @@ def rank_for_mmr(mmr: int) -> dict:
     return r
 
 
-def ranked_start(player: dict, opponent: dict | None = None) -> dict:
+def ranked_start(player: dict, opponent: dict | None = None, bans: list | None = None) -> dict:
     """Начать ранговый бой. Если передан opponent (другой игрок) — зеркало его отряда и его ник; иначе бот."""
     if player.get("battle_session"):
         return {"ok": False, "error": "Бой уже идёт"}
+    mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
+    rk = rank_for_mmr(mmr)
+    rule = D.RANK_RULES.get(rk["key"], {})
+    need_chars = rule.get("req_chars", 0)
+    need_lvl = rule.get("req_lvl", 0)
+    if need_chars:
+        strong = [c for c in player["characters"] if c.get("level", 1) >= need_lvl]
+        if len(strong) < need_chars:
+            return {"ok": False, "error": f"Для лиги «{rk['group']}» нужно {need_chars} персонажей {need_lvl}+ ур. (у вас {len(strong)})"}
     size = team_size(player)
     team_ids = player["team"][:size]
     if not team_ids:
@@ -424,37 +433,62 @@ def ranked_start(player: dict, opponent: dict | None = None) -> dict:
                 "affs": list(c["affinities"]), "exp": 0,
             })
         title = f"🏆 Ранговый бой! Бот: {opp_name}"
+    if bans:
+        ban_set = set(str(b) for b in bans)
+        enemies = [e for e in enemies if e["name"] not in ban_set]
     if not enemies:
         return {"ok": False, "error": "Соперник не найден"}
+    # серия по рангу
+    series = player.setdefault("ranked_series", {"key": rk["key"], "wins": 0, "games": 0})
+    if series.get("key") != rk["key"]:
+        series = player["ranked_series"] = {"key": rk["key"], "wins": 0, "games": 0}
     sess = {
         "chapter": 1, "loc": 1, "theme": "Ранговая арена", "ranked": True,
-        "opponent": opp_name,
+        "opponent": opp_name, "opponent_is_bot": not (opponent and opponent.get("characters")),
         "fighters": fighters, "enemies": enemies,
         "chances": dict(player["chances"]),
-        "round": 1, "log": [title + f" · Ранг: {rank_for_mmr(mmr)['name']} · MMR {mmr}"],
+        "round": 1, "log": [title + f" · Ранг: {rk['name']} · MMR {mmr} · серия {series['wins']}/{rule.get('wins', 1)} побед"],
         "over": False, "win": None, "exp_buff": 0.0, "dark_buff": 0.0,
+        "rank_key": rk["key"], "rank_rule": rule, "ban_count": rule.get("ban", 0),
     }
     player["battle_session"] = sess
-    return {"ok": True, "battle": _sess_public(sess)}
+    return {"ok": True, "battle": _sess_public(sess), "ban_count": rule.get("ban", 0)}
 
 
 def _apply_ranked_win(player: dict, sess: dict):
     r = player.setdefault("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0})
+    rule = sess.get("rank_rule") or {}
+    rng = rule.get("win", (30, 50))
+    gain = random.randint(rng[0], rng[1])
     r["wins"] += 1
-    r["mmr"] += D.RANK_WIN_MMR
+    r["mmr"] += gain
     egez = 20
     player["egez"] += egez
+    # серия
+    series = player.setdefault("ranked_series", {"key": sess.get("rank_key"), "wins": 0, "games": 0})
+    series["wins"] += 1
+    series["games"] += 1
+    series_done = series["wins"] >= rule.get("wins", 1)
     sess["rewards"] = {"exp": 0, "darkness": 0, "materials": {}, "scroll": False, "egez": egez,
-                       "rank_mmr": D.RANK_WIN_MMR, "rank_name": rank_for_mmr(r["mmr"])["name"]}
+                       "rank_mmr": gain, "rank_name": rank_for_mmr(r["mmr"])["name"],
+                       "series_wins": series["wins"], "series_need": rule.get("wins", 1),
+                       "series_done": series_done}
     sess["levelups"] = []
 
 
 def _apply_ranked_lose(player: dict, sess: dict):
     r = player.setdefault("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0})
+    rule = sess.get("rank_rule") or {}
+    rng = rule.get("lose", (5, 10))
+    loss = random.randint(rng[0], rng[1])
     r["losses"] += 1
-    r["mmr"] = max(0, r["mmr"] - D.RANK_LOSE_MMR)
+    r["mmr"] = max(0, r["mmr"] - loss)
+    series = player.setdefault("ranked_series", {"key": sess.get("rank_key"), "wins": 0, "games": 0})
+    series["games"] += 1
     sess["rewards"] = {"exp": 0, "darkness": 0, "materials": {}, "scroll": False, "egez": 0,
-                       "rank_mmr": -D.RANK_LOSE_MMR, "rank_name": rank_for_mmr(r["mmr"])["name"]}
+                       "rank_mmr": -loss, "rank_name": rank_for_mmr(r["mmr"])["name"],
+                       "series_wins": series["wins"], "series_need": rule.get("wins", 1),
+                       "series_done": False}
     sess["levelups"] = []
 
 
@@ -714,6 +748,7 @@ def public_state(player: dict) -> dict:
         "brews": player["brews"], "buffs": player["buffs"],
         "material_cd": player["material_cd"],
         "ranked": player.get("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0}),
+        "ranked_series": player.get("ranked_series"),
         "gacha_free_used": bool(player.get("gacha_free_claimed")),
     }
 
@@ -757,7 +792,8 @@ def _battle_setup(player, chapter, loc_n):
 def _sess_public(sess):
     return {
         "chapter": sess["chapter"], "loc": sess["loc"], "round": sess["round"],
-        "theme": sess["theme"], "log": sess["log"][-30:], "opponent": sess.get("opponent"),
+        "theme": sess["theme"], "log": sess["log"][-30:], "opponent": sess.get("opponent"), "opponent_is_bot": sess.get("opponent_is_bot"),
+        "rank_key": sess.get("rank_key"), "ban_count": sess.get("ban_count", 0),
         "fighters": [{"char_id": f["char_id"], "name": f["name"], "hp": max(0, f["hp"]), "max_hp": f["max_hp"], "level": f["level"], "defending": f["defending"]} for f in sess["fighters"]],
         "enemies": [{"idx": e["idx"], "name": e["name"], "mtype": e["mtype"], "hp": max(0, e["hp"]), "max_hp": e["max_hp"]} for e in sess["enemies"]],
         "over": sess["over"], "win": sess.get("win"),
