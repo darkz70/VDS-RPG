@@ -14,7 +14,7 @@ if (tg) {
       if (tg.contentSafeAreaInset && typeof tg.contentSafeAreaInset.top === "number") t = tg.contentSafeAreaInset.top;
       if (!t && tg.safeAreaInset && typeof tg.safeAreaInset.top === "number") t = tg.safeAreaInset.top;
     } catch (e) {}
-    if (t < 40) t = 56;
+    if (t < 40) t = 64;
     TG_TOP = t;
     rootStyle.setProperty("--tg-top", t + "px");
   }
@@ -33,7 +33,8 @@ var INIT_DATA = tg ? tg.initData : "tg_id=1&first_name=Dev";
 var STATE = null;     // state игрока
 var META = null;      // константы
 var IS_ADMIN = false; // админ-флаг
-var MAINT = false;    // техперерыв
+var MAINT = false;
+var MODE = "campaign";    // техперерыв
 var TAB = "menu";     // текущий экран: menu|map|chars|shop|brew|profile|admin|battle
 var MAP_CHAPTER = 1;  // выбранная глава на карте
 var BATTLE = null;    // сессия боя
@@ -152,9 +153,9 @@ async function renderMap() {
                     (IS_ADMIN ? '<button class="sq" onclick="TAB=\'admin\';render()">🛠<span>Админка</span></button>' : '') +
         '</div>' +
         '<div class="bottom">' +
-          '<button class="btn small on">🗺 Кампания</button>' +
+          '<button class="btn small on" onclick="modeSelect()">🎮 Режим</button>' +
           '<button class="btn small" onclick="TAB=\'ranked\';render()">🏆 Ранкед</button>' +
-          '<button class="btn btn-play" onclick="TAB=\'map\';render()">▶ ИГРАТЬ</button>' +
+          '<button class="btn btn-play" onclick="startPlay()">▶ ИГРАТЬ</button>' +
         '</div>' +
       '</div>';
   } else {
@@ -188,6 +189,18 @@ async function renderMapGrid() {
   });
   screen.innerHTML = '<div class="panel"><h3>🗺 Глава ' + cur.chapter + ' — ' + esc(cur.name || "") + '</h3>' +
     '<div class="chapters">' + chBtns + '</div><div class="locgrid">' + locs + '</div></div>';
+}
+
+function modeSelect() {
+  openModal('<h3>🎮 Выбор режима</h3>' +
+    '<button class="btn btn-play" style="margin:4px 0" onclick="MODE=\'campaign\';closeModal();toast(\'Режим: Кампания\')">🗺 Кампания</button>' +
+    '<button class="btn btn-play" style="margin:4px 0" onclick="MODE=\'ranked\';closeModal();TAB=\'ranked\';render()">🏆 Ранкед</button>' +
+    '<button class="btn btn-play" style="margin:4px 0" onclick="MODE=\'rifts\';closeModal();renderRifts()">🌀 Разломы</button>');
+}
+async function startPlay() {
+  if (MODE === "ranked") { TAB = "ranked"; render(); return; }
+  if (MODE === "rifts") { renderRifts(); return; }
+  TAB = "map"; render();
 }
 
 /* ── Ранкед ── */
@@ -289,7 +302,15 @@ async function rankedStartGo(banCount, picksFromModal) {
   if (r.ok && r.battle && !r.battle.opponent_is_bot) wait = Math.max(0, 1500 - (Date.now() - started));
   setTimeout(function () {
   if (btn) { btn.disabled = false; btn.textContent = "⚔️ Найти бой"; }
-  if (!r.ok) { toast(r.error); return; }
+  if (!r.ok) {
+    if (r.error && r.error.indexOf("Бой уже идёт") >= 0) {
+      openModal('<h3>⚔️ Бой уже идёт</h3><p class="muted">Продолжить текущий бой или сдаться (поражение + бан 30 мин)?</p>' +
+        '<button class="btn btn-play" onclick="closeModal();TAB=\'battle\';render()">▶ Продолжить</button>' +
+        '<button class="btn" style="margin-top:6px" onclick="abandonBattle()">🏳 Сдаться</button>');
+      return;
+    }
+    toast(r.error); return;
+  }
   BATTLE = r.battle || r;
   BATTLE_TARGET = 0;
   STANCE = {};
@@ -337,6 +358,28 @@ function draftGo() {
   DRAFT = null;
   closeModal();
   rankedStartGo(0, names);
+}
+
+async function renderRifts() {
+  var r = await api("/api/rifts/status", {});
+  if (!r.ok) { toast(r.error); return; }
+  var rf = r.rifts || { closed: 0 };
+  var html = '<div class="panel"><h3>🌀 Разломы дня</h3><p class="muted">Закрыто: ' + rf.closed + ' / ' + r.per_day + '</p>';
+  for (var i = 1; i <= r.per_day; i++) {
+    var done = i <= rf.closed;
+    html += '<button class="btn ' + (done ? "small" : "btn-play") + '" style="margin:3px 0" ' + (done ? "disabled" : 'onclick="riftClose()"') + '>' + (done ? "✅" : "🌀") + ' Разлом ' + i + (done ? "" : " — закрыть (+250 Тьмы)") + '</button>';
+  }
+  if (rf.closed >= r.per_day) html += '<p class="muted" style="margin-top:8px">Все разломы закрыты! +2 свитка прокачки</p>';
+  html += '</div>';
+  screen.innerHTML = html;
+}
+async function riftClose() {
+  var r = await api("/api/rifts/close", {});
+  if (!r.ok) { toast(r.error); return; }
+  STATE = r.state || STATE;
+  renderChip();
+  toast("🌀 Разлом закрыт! +" + r.darkness + " Тьмы" + (r.scrolls ? " · +" + r.scrolls + " свитка" : ""));
+  renderRifts();
 }
 
 /* ── Бой ── */
@@ -438,7 +481,7 @@ function renderChars() {
   var cards = chars.map(function (c) {
     var inte = team.indexOf(c.id) >= 0;
     var st = c.stats || {};
-    return '<div class="card ch-card"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + (inte ? '<span class="tag inteam">в отряде</span>' : "") + '</h4>' +
+    return '<div class="card ch-card" style="cursor:pointer" onclick="charDetail(\'' + c.id + '\')"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + (inte ? '<span class="tag inteam">в отряде</span>' : "") + '</h4>' +
       '<div class="row"><span>⭐ ур. ' + c.level + '</span><span>' + esc((c.affinities || []).join(", ") || "") + '</span></div>' +
       '<div class="row"><span>❤️ ' + st.hp + '</span><span>⚔️ ' + st.str + ' · 🛡 ' + st.def + '</span></div>' +
       '<div class="row"><span>💨 ' + st.agi + ' · 🔮 ' + st.will + '</span></div>' +
@@ -447,6 +490,34 @@ function renderChars() {
       '<button class="btn" onclick="charGear(\'' + c.id + '\')">🎒 Экипировка</button></div></div>';
   }).join("");
   screen.innerHTML = '<div class="panel"><h3>🎭 Персонажи · отряд ' + team.length + '/' + (STATE.team_size || 1) + '</h3><div class="ch-grid">' + cards + '</div></div>';
+}
+async function charDetail(cid) {
+  var c = null;
+  (STATE.characters || []).forEach(function (x) { if (x.id === cid) c = x; });
+  if (!c) return;
+  var st = c.stats || {};
+  var cost = 0;
+  var r = await api("/api/character/upgrade_cost", { char_id: cid });
+  if (r.ok) cost = r.cost;
+  var html = '<h3>' + (c.face || "🦸") + " " + esc(c.name) + '</h3>' +
+    '<p class="muted">' + esc((c.affinities || []).join(", ")) + ' · ур. ' + c.level + ' · редкость ' + c.rarity + '</p>' +
+    '<div class="row"><span>❤️ HP</span><b>' + st.hp + '</b></div>' +
+    '<div class="row"><span>⚔️ Сила</span><b>' + st.str + '</b></div>' +
+    '<div class="row"><span>🛡 Защита</span><b>' + st.def + '</b></div>' +
+    '<div class="row"><span>💨 Ловкость</span><b>' + st.agi + '</b></div>' +
+    '<div class="row"><span>🔮 Воля</span><b>' + st.will + '</b></div>' +
+    '<p class="muted" style="margin:8px 0">' + esc(c.desc || "Герой тьмы.") + '</p>' +
+    '<button class="btn btn-play" onclick="upgradeChar(\'' + cid + '\')">⬆ Прокачать (' + cost + ' Тьмы)</button>' +
+    '<button class="btn" style="margin-top:6px" onclick="charGear(\'' + cid + '\')">🎒 Экипировка</button>';
+  openModal(html);
+}
+async function upgradeChar(cid) {
+  var r = await api("/api/character/upgrade", { char_id: cid });
+  if (!r.ok) { toast(r.error); return; }
+  STATE = r.state || STATE;
+  renderChip();
+  toast("⬆ Уровень повышен!");
+  closeModal(); renderChars();
 }
 function charGear(cid) {
   var c = null;
@@ -640,12 +711,12 @@ function renderProfile() {
     bgs += '<button class="btn small' + (prof.bg === b.key ? " on" : "") + '" onclick="profileSet(\'bg\',\'' + b.key + '\')">' + b.name + '</button>';
   });
   var html = '<div class="panel profile-panel ' + bgCls + '"><div class="pf-head ' + frameCls + '"><div class="pf-face">' + prof.icon + '</div><div><h3>' + esc(STATE.name || "") + '</h3><p class="muted">' + prof.title + ' · ⭐ ' + (STATE.level || 1) + '</p></div></div>' +
-    '<div class="row"><span>Опыт</span><b>' + fmt(STATE.xp) + ' / ' + fmt(STATE.xp_need || 0) + '</b></div>' +
-    '<div class="row"><span>Глава</span><b>' + (STATE.chapter || 1) + '</b></div>' +
-    '<div class="row"><span>Свитки боссов</span><b>' + fmt(STATE.boss_scroll_claimed || 0) + '</b></div>' +
+    '<div class="row"><span>Опыт</span><b>&nbsp;' + fmt(STATE.xp) + ' / ' + fmt(STATE.xp_need || 0) + '</b></div>' +
+    '<div class="row"><span>Глава</span><b>&nbsp;' + (STATE.chapter || 1) + '</b></div>' +
+    '<div class="row"><span>Свитки боссов</span><b>&nbsp;' + fmt(STATE.boss_scroll_claimed || 0) + '</b></div>' +
     '<div class="row"><span>' + IC_DARK + ' Тьма</span><b>' + fmt(STATE.darkness) + '</b></div>' +
     '<div class="row"><span>' + IC_EGEZ + ' Э Gez</span><b>' + fmt(STATE.egez) + '</b></div>' +
-    '<div class="row"><span>Персонажей</span><b>' + (STATE.characters || []).length + '</b></div>' +
+    '<div class="row"><span>Персонажей</span><b>&nbsp;' + (STATE.characters || []).length + '</b></div>' +
     '<p class="muted" style="margin-top:10px">Бонус опыта: ' + (STATE.exp_boost || 50) + '%</p>' +
     '<div class="pf-section"><b>Иконка</b><div class="pf-icons">' + icons + '</div></div>' +
     '<div class="pf-section"><b>Рамка</b><div class="pf-btns">' + frames + '</div></div>' +

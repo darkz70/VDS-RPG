@@ -372,3 +372,18 @@ PROFILE_BACKGROUNDS = [
     {"key": "abyss",   "name": "Бездна",       "cls": "bg-abyss"},
     {"key": "royal",   "name": "Королевский",  "cls": "bg-royal"},
 ]
+
+# ---------------------------------------------------------------------------
+# Прокачка и тьма (по Лёше)
+# ---------------------------------------------------------------------------
+DARKNESS_UPGRADE_COSTS = {1: 15, 2: 25, 3: 50, 4: 100, 5: 110, 6: 200, 7: 250, 8: 450, 9: 500, 10: 800,
+                          11: 15, 12: 25, 13: 50, 14: 100, 15: 110, 16: 200, 17: 250, 18: 450, 19: 500, 20: 1000}
+EVO_COST_DARKNESS = 1500
+DARKNESS_PER_NORMAL = 100
+DARKNESS_PER_BOSS = 1500
+DARKNESS_PER_BONUS = 500
+DARKNESS_CHAPTER_CLEAR = 1100
+DARKNESS_FIRST_CHAPTER = 2600
+RIFTS_PER_DAY = 8
+RIFT_DARKNESS = 250
+RIFT_ALL_SCROLLS = 2
