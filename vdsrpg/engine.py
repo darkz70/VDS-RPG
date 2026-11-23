@@ -312,7 +312,7 @@ def battle(player: dict, chapter: int, loc_n: int) -> dict:
 
     base_exp = sum(e["exp"] for e in enemies)
     exp_gain = int(base_exp * D.chapter_mult(chapter) * replay * (1 + exp_buff))
-    darkness = int(loc["darkness"] * (1 + dark_buff))
+    darkness = int((D.DARKNESS_PER_BOSS if loc["is_boss"] else D.DARKNESS_PER_NORMAL) * (1 + dark_buff))
     if replay < 1:
         darkness = int(darkness * (0.5 if clears == 1 else 0.25))
 
@@ -337,6 +337,12 @@ def battle(player: dict, chapter: int, loc_n: int) -> dict:
             rewards["scroll"] = True
         rewards["egez"] = 50
         player["egez"] += 50
+    # бонус за прохождение главы (после локации 35)
+    if loc_n == D.LOCS_PER_CHAPTER:
+        bonus = D.DARKNESS_FIRST_CHAPTER if chapter == 1 else D.DARKNESS_CHAPTER_CLEAR
+        player["darkness"] += bonus
+        rewards["darkness"] += bonus
+        rewards["chapter_clear"] = bonus
 
     player["darkness"] += darkness
     player["exp"] += exp_gain
@@ -360,6 +366,31 @@ def battle(player: dict, chapter: int, loc_n: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Разломы (8 в день, 250 тьмы, +2 свитка за все)
+# ---------------------------------------------------------------------------
+def rift_today(player: dict) -> dict:
+    import datetime
+    today = datetime.date.today().isoformat()
+    rifts = player.setdefault("rifts", {"date": today, "closed": 0})
+    if rifts.get("date") != today:
+        rifts = player["rifts"] = {"date": today, "closed": 0}
+    return rifts
+
+
+def rift_close(player: dict) -> dict:
+    rifts = rift_today(player)
+    if rifts["closed"] >= D.RIFTS_PER_DAY:
+        return {"ok": False, "error": "Все разломы закрыты"}
+    rifts["closed"] += 1
+    player["darkness"] += D.RIFT_DARKNESS
+    scrolls = 0
+    if rifts["closed"] == D.RIFTS_PER_DAY:
+        player["scrolls"] += D.RIFT_ALL_SCROLLS
+        scrolls = D.RIFT_ALL_SCROLLS
+    return {"ok": True, "darkness": D.RIFT_DARKNESS, "closed": rifts["closed"], "scrolls": scrolls}
+
+
+# ---------------------------------------------------------------------------
 # Ранговый бой (бот-соперник на основе вашего отряда)
 # ---------------------------------------------------------------------------
 RANK_BOT_NAMES = ["Тень Арены", "Зеркальный Воин", "Эхо Чемпиона", "Двойник", "Фантом Ранга"]
@@ -377,6 +408,10 @@ def ranked_start(player: dict, opponent: dict | None = None, bans: list | None =
     """Начать ранговый бой. Если передан opponent (другой игрок) — зеркало его отряда и его ник; иначе бот."""
     if player.get("battle_session"):
         return {"ok": False, "error": "Бой уже идёт"}
+    ban_until = player.get("ranked_ban_until", 0)
+    if time.time() < ban_until:
+        left = int((ban_until - time.time()) / 60) + 1
+        return {"ok": False, "error": f"🚫 Вы покинули бой — бан на {left} мин"}
     mmr = player.get("ranked", {}).get("mmr", D.RANK_START_MMR)
     rk = rank_for_mmr(mmr)
     rule = D.RANK_RULES.get(rk["key"], {})
@@ -477,7 +512,7 @@ def _apply_ranked_win(player: dict, sess: dict):
     sess["levelups"] = []
 
 
-def _apply_ranked_lose(player: dict, sess: dict):
+def _apply_ranked_lose(player: dict, sess: dict, abandoned: bool = False):
     r = player.setdefault("ranked", {"mmr": D.RANK_START_MMR, "wins": 0, "losses": 0})
     rule = sess.get("rank_rule") or {}
     rng = rule.get("lose", (5, 10))
@@ -486,10 +521,13 @@ def _apply_ranked_lose(player: dict, sess: dict):
     r["mmr"] = max(0, r["mmr"] - loss)
     series = player.setdefault("ranked_series", {"key": sess.get("rank_key"), "wins": 0, "games": 0})
     series["games"] += 1
+    if abandoned:
+        player["ranked_ban_until"] = time.time() + 30 * 60
     sess["rewards"] = {"exp": 0, "darkness": 0, "materials": {}, "scroll": False, "egez": 0,
                        "rank_mmr": -loss, "rank_name": rank_for_mmr(r["mmr"])["name"],
                        "series_wins": series["wins"], "series_need": rule.get("wins", 1),
-                       "series_done": False}
+                       "series_done": False, "abandoned": abandoned,
+                       "ban_min": 30 if abandoned else 0}
     sess["levelups"] = []
 
 
@@ -497,11 +535,7 @@ def _apply_ranked_lose(player: dict, sess: dict):
 # Прокачка персонажа
 # ---------------------------------------------------------------------------
 def upgrade_cost(char: dict, to_level: int) -> int:
-    base = 200 if char["rarity"] <= 4 else 500
-    cost = base
-    for _ in range(2, to_level + 1):
-        cost = cost * 2 + base
-    return cost
+    return D.DARKNESS_UPGRADE_COSTS.get(to_level, 1000)
 
 
 def can_upgrade(player: dict, char: dict) -> tuple[bool, str]:

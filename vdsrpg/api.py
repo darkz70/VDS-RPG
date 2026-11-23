@@ -492,6 +492,29 @@ def api_profile_customize():
     return api_ok({"profile": prof, "state": engine.public_state(player)})
 
 
+@app.post("/api/rifts/status")
+def api_rifts_status():
+    player, err = _auth_player()
+    if err:
+        return err
+    return api_ok({"rifts": engine.rift_today(player), "per_day": D.RIFTS_PER_DAY})
+
+
+@app.post("/api/rifts/close")
+def api_rifts_close():
+    player, err = _auth_player()
+    if err:
+        return err
+    m = _maintenance_err(player)
+    if m:
+        return m
+    r = engine.rift_close(player)
+    if not r.get("ok"):
+        return jsonify(r), 400
+    _save(player)
+    return api_ok({**r, "state": engine.public_state(player)})
+
+
 @app.post("/api/ranked/online")
 def api_ranked_online():
     player, err = _auth_player()
@@ -520,6 +543,24 @@ def api_ranked_start():
     return api_ok(r)
 
 
+@app.post("/api/battle/abandon")
+def api_battle_abandon():
+    player, err = _auth_player()
+    if err:
+        return err
+    sess = player.get("battle_session")
+    if not sess:
+        return jsonify({"ok": False, "error": "Нет активного боя"}), 400
+    if sess.get("ranked"):
+        engine._apply_ranked_lose(player, sess, abandoned=True)
+        player["battle_session"] = None
+        _save(player)
+        return api_ok({"abandoned": True, "ban_min": 30, "state": engine.public_state(player)})
+    player["battle_session"] = None
+    _save(player)
+    return api_ok({"abandoned": True, "state": engine.public_state(player)})
+
+
 @app.post("/api/battle/turn")
 def api_battle_turn():
     """Сделать один ход в пошаговом бою: actions = [{char_id, type: attack|defend, target: enemy_idx}]."""
@@ -541,6 +582,20 @@ def api_battle_turn():
         out["levelups"] = r.get("levelups", [])
         out["state"] = engine.public_state(player)
     return jsonify(out)
+
+
+@app.post("/api/character/upgrade_cost")
+def api_upgrade_cost():
+    player, err = _auth_player()
+    if err:
+        return err
+    body = request.get_json(force=True, silent=True) or {}
+    char = next((c for c in player["characters"] if c["id"] == body.get("char_id", "")), None)
+    if not char:
+        return jsonify({"ok": False, "error": "Персонаж не найден"}), 404
+    if char["level"] >= 20:
+        return api_ok({"cost": D.EVO_COST_DARKNESS, "evo": True})
+    return api_ok({"cost": engine.upgrade_cost(char, char["level"] + 1), "evo": False})
 
 
 @app.post("/api/character/upgrade")
