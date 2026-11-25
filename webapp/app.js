@@ -17,6 +17,9 @@ if (tg) {
     if (t < 40) t = 64;
     TG_TOP = t;
     rootStyle.setProperty("--tg-top", t + "px");
+    var r = 0;
+    try { if (tg.contentSafeAreaInset && typeof tg.contentSafeAreaInset.right === "number") r = tg.contentSafeAreaInset.right; } catch (e) {}
+    rootStyle.setProperty("--tg-right", r + "px");
   }
   setTgTop();
   var topTries = 0;
@@ -27,7 +30,6 @@ if (tg) {
   if (window.addEventListener) window.addEventListener("resize", setTgTop);
   if (tg.onEvent) { try { tg.onEvent("contentSafeAreaChanged", setTgTop); tg.onEvent("safeAreaChanged", setTgTop); } catch (e) {} }
   try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
-  try { if (tg.lockOrientation) tg.lockOrientation(); } catch (e) {}
 }
 var INIT_DATA = tg ? tg.initData : "tg_id=1&first_name=Dev";
 
@@ -296,6 +298,7 @@ function renderRanked() {
       (isCur ? rankMarksHtml(cur, rk.mmr) : "") + '</div>' + (isCur ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
   });
   screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой · лига «' + cur.group + '»</h3>' +
+    '<div class="rank-wrap"><div class="rank-left">' +
     '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + markName + '</b>' + rankMarksHtml(cur, rk.mmr) +
     '<div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
     '<div class="muted">Соперников онлайн: <span id="opp-count">…</span></div>' +
@@ -313,7 +316,7 @@ function renderRanked() {
       if (!chk.ok) return '<button class="btn btn-play" id="ranked-btn" disabled style="opacity:.45;filter:grayscale(.6)">🔒 Нужно ' + rule.req_chars + ' персонажей ' + rule.req_lvl + '+ ур.</button>';
       return '<button class="btn btn-play" id="ranked-btn" onclick="rankedStart()">⚔️ Найти бой</button>';
     })() +
-    '<div class="rank-list">' + list + '</div></div>';
+    '</div><div class="rank-list">' + list + '</div></div></div>';
   api("/api/ranked/online", {}).then(function (r) {
     var el = document.getElementById("opp-count");
     if (el) el.textContent = r.ok ? r.count : "0";
