@@ -27,6 +27,7 @@ if (tg) {
   if (window.addEventListener) window.addEventListener("resize", setTgTop);
   if (tg.onEvent) { try { tg.onEvent("contentSafeAreaChanged", setTgTop); tg.onEvent("safeAreaChanged", setTgTop); } catch (e) {} }
   try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
+  try { if (tg.lockOrientation) tg.lockOrientation(); } catch (e) {}
 }
 var INIT_DATA = tg ? tg.initData : "tg_id=1&first_name=Dev";
 
@@ -219,43 +220,99 @@ var RANK_RULES_UI = {
   "Деревянный": { wins: 1, ban: 0,  win: "30-50",  lose: "5-10",  req: "" },
   "Каменный":   { wins: 1, ban: 0,  win: "30-50",  lose: "10-15", req: "" },
   "Железный":   { wins: 2, ban: 0,  win: "20-50",  lose: "15-30", req: "" },
-  "Золотой":    { wins: 2, ban: 3,  win: "20-40",  lose: "15-30", req: "20 персонажей 15+ ур." },
-  "Алмазный":   { wins: 2, ban: 5,  win: "20-40",  lose: "20-30", req: "20 персонажей 15+ ур." },
-  "Изумрудный": { wins: 3, ban: 10, win: "10-40",  lose: "20-40", req: "20 персонажей 15+ ур." },
-  "Профессиональный": { wins: 3, ban: 15, win: "10-20", lose: "15-20", req: "25 персонажей 18+ ур." },
+  "Золотой":    { wins: 2, ban: 3,  win: "20-40",  lose: "15-30", req: "20 персонажей 15+ ур.", req_chars: 20, req_lvl: 15 },
+  "Алмазный":   { wins: 2, ban: 5,  win: "20-40",  lose: "20-30", req: "20 персонажей 15+ ур.", req_chars: 20, req_lvl: 15 },
+  "Изумрудный": { wins: 3, ban: 10, win: "10-40",  lose: "20-40", req: "20 персонажей 15+ ур.", req_chars: 20, req_lvl: 15 },
+  "Профессиональный": { wins: 3, ban: 15, win: "10-20", lose: "15-20", req: "25 персонажей 18+ ур.", req_chars: 25, req_lvl: 18 },
 };
+function rankReqOk(rule) {
+  // проверка требования лиги по своим персонажам
+  if (!rule || !rule.req_chars) return { ok: true, have: 0 };
+  var have = 0;
+  ((STATE && STATE.characters) || []).forEach(function (c) { if ((c.level || 1) >= rule.req_lvl) have++; });
+  return { ok: have >= rule.req_chars, have: have };
+}
 var RANKS_UI = [
-  { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная" },
-  { min: 250,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная" },
-  { min: 700,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная" },
-  { min: 1500, name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая" },
-  { min: 2500, name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая" },
-  { min: 4000, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая" },
-  { min: 5000, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный" },
+  { min: 0,    name: "Деревянный",       img: "img/ranks/wood.png",     group: "Начальная",
+    marks: [[0,20],[20,50],[50,100],[100,150],[150,250]] },
+  { min: 250,  name: "Каменный",         img: "img/ranks/stone.png",   group: "Начальная",
+    marks: [[250,300],[300,350],[350,500],[500,600],[600,700]] },
+  { min: 700,  name: "Железный",         img: "img/ranks/iron.png",     group: "Начальная",
+    marks: [[700,800],[800,900],[900,1100],[1100,1300],[1300,1500]] },
+  { min: 1500, name: "Золотой",          img: "img/ranks/gold.png",     group: "Продвинутая",
+    marks: [[1500,1600],[1600,1800],[1800,2000],[2000,2200],[2200,2500]] },
+  { min: 2500, name: "Алмазный",         img: "img/ranks/diamond.png",  group: "Продвинутая",
+    marks: [[2500,2600],[2600,2800],[2800,3500],[3500,3800],[3800,4000]] },
+  { min: 4000, name: "Изумрудный",       img: "img/ranks/emerald.png",  group: "Продвинутая",
+    marks: [[4000,4200],[4200,4400],[4400,4600],[4600,4800],[4800,5000]] },
+  { min: 5000, name: "Профессиональный", img: "img/ranks/pro.png",      group: "Профессиональный",
+    marks: [] },
 ];
+var ROMAN = ["I","II","III","IV","V"];
 function rankFor(mmr) {
   var r = RANKS_UI[0];
   for (var i = 0; i < RANKS_UI.length; i++) if (mmr >= RANKS_UI[i].min) r = RANKS_UI[i];
   return r;
+}
+function rankMark(rank, mmr) {
+  // номер отметки 1-5 внутри ранга (0 — если без отметок)
+  if (!rank.marks || !rank.marks.length) return 0;
+  var m = 1;
+  for (var i = 0; i < rank.marks.length; i++) if (mmr >= rank.marks[i][0]) m = i + 1;
+  return m;
+}
+function rankMarksHtml(rank, mmr) {
+  if (!rank.marks || !rank.marks.length) return "";
+  var m = rankMark(rank, mmr), h = '<div class="rank-marks">';
+  for (var i = 0; i < rank.marks.length; i++) h += '<span class="rank-mark' + (i < m ? " full" : "") + '"></span>';
+  return h + '</div>';
+}
+function rankRange(rank, nextMin) {
+  if (!nextMin) return "от " + rank.min + " MMR";
+  return rank.min + "–" + nextMin + " MMR";
 }
 function renderRanked() {
   var rk = (STATE && STATE.ranked) || { mmr: 0, wins: 0, losses: 0 };
   var cur = rankFor(rk.mmr);
   var next = null;
   for (var i = 0; i < RANKS_UI.length; i++) if (RANKS_UI[i].min > rk.mmr) { next = RANKS_UI[i]; break; }
+  var mark = rankMark(cur, rk.mmr);
+  var markName = mark ? " " + ROMAN[mark - 1] : "";
+  var toNext = "";
+  if (cur.marks && cur.marks.length && mark < 5) {
+    toNext = '<div class="muted">До отметки ' + ROMAN[mark] + ': ' + (cur.marks[mark][0] - rk.mmr) + ' MMR</div>';
+  } else if (next) {
+    toNext = '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>';
+  } else {
+    toNext = '<div class="muted">Максимальный ранг</div>';
+  }
   var list = "", lastGroup = "";
-  RANKS_UI.forEach(function (r) {
+  RANKS_UI.forEach(function (r, idx) {
     if (r.group !== lastGroup) { list += '<div class="rank-group">' + r.group + '</div>'; lastGroup = r.group; }
-    var cls = (r.name === cur.name) ? " on" : "";
-    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div><b>' + r.name + '</b><span class="muted"> · от ' + r.min + ' MMR</span></div>' + (r.name === cur.name ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
+    var isCur = (r.name === cur.name);
+    var cls = isCur ? " on" : "";
+    var nextMin = (idx + 1 < RANKS_UI.length) ? RANKS_UI[idx + 1].min : 0;
+    list += '<div class="rank-row' + cls + '"><img src="' + r.img + '" alt="' + r.name + '"><div style="flex:1"><b>' + r.name + (isCur ? markName : "") + '</b><span class="muted"> · ' + rankRange(r, nextMin) + '</span>' +
+      (isCur ? rankMarksHtml(cur, rk.mmr) : "") + '</div>' + (isCur ? '<span class="tag inteam">вы здесь</span>' : "") + '</div>';
   });
   screen.innerHTML = '<div class="panel"><h3>🏆 Ранговый бой · лига «' + cur.group + '»</h3>' +
-    '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + '</b><div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
+    '<div class="rank-hero"><img src="' + cur.img + '" alt=""><div><b>' + cur.name + markName + '</b>' + rankMarksHtml(cur, rk.mmr) +
+    '<div class="muted">MMR ' + rk.mmr + ' · побед ' + rk.wins + ' · поражений ' + rk.losses + '</div>' +
     '<div class="muted">Соперников онлайн: <span id="opp-count">…</span></div>' +
-    (next ? '<div class="muted">До ' + next.name + ': ' + (next.min - rk.mmr) + ' MMR</div>' : '<div class="muted">Максимальный ранг</div>') + '</div></div>' +
+    toNext + '</div></div>' +
     (RANK_RULES_UI[cur.name] && RANK_RULES_UI[cur.name].ban > 0 ? '<div class="muted" style="margin:4px 0">Перед боем: бан ' + RANK_RULES_UI[cur.name].ban + ' персонажей соперника</div>' : "") +
-    (RANK_RULES_UI[cur.name] && RANK_RULES_UI[cur.name].req ? '<div class="muted" style="margin:4px 0">Требование: ' + RANK_RULES_UI[cur.name].req + '</div>' : "") +
-    '<button class="btn btn-play" id="ranked-btn" onclick="rankedStart()">⚔️ Найти бой</button>' +
+    (function () {
+      var rule = RANK_RULES_UI[cur.name] || {};
+      if (!rule.req_chars) return "";
+      var chk = rankReqOk(rule);
+      return '<div class="muted" style="margin:4px 0">Требование: ' + rule.req + ' — <b style="color:' + (chk.ok ? "var(--good)" : "var(--bad)") + '">у вас ' + chk.have + '</b></div>';
+    })() +
+    (function () {
+      var rule = RANK_RULES_UI[cur.name] || {};
+      var chk = rankReqOk(rule);
+      if (!chk.ok) return '<button class="btn btn-play" id="ranked-btn" disabled style="opacity:.45;filter:grayscale(.6)">🔒 Нужно ' + rule.req_chars + ' персонажей ' + rule.req_lvl + '+ ур.</button>';
+      return '<button class="btn btn-play" id="ranked-btn" onclick="rankedStart()">⚔️ Найти бой</button>';
+    })() +
     '<div class="rank-list">' + list + '</div></div>';
   api("/api/ranked/online", {}).then(function (r) {
     var el = document.getElementById("opp-count");
@@ -274,7 +331,7 @@ async function rankedStart() {
     var picks = [];
     var html = '<h3>🚫 Бан персонажей (' + banCount + ')</h3><div class="ch-grid" style="max-height:50vh;overflow-y:auto">';
     chars.forEach(function (c) {
-      html += '<div class="card ch-card" style="cursor:pointer" onclick="this.classList.toggle(\'ban-pick\')"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + '</h4><p class="muted">ур. ' + c.level + '</p></div>';
+      html += '<div class="card ch-card" style="cursor:pointer" onclick="banPick(this,' + banCount + ')"><div class="face">' + (c.face || "🦸") + '</div><h4>' + esc(c.name) + '</h4><p class="muted">ур. ' + c.level + '</p></div>';
     });
     html += '</div><button class="btn btn-play" onclick="rankedStartGo(' + banCount + ')">Готово</button>';
     openModal(html);
@@ -283,6 +340,11 @@ async function rankedStart() {
   rankedStartGo(0, []);
   } catch (e) { toast("Ошибка: " + (e && e.message || e)); }
 }
+function banPick(el, max) {
+  if (el.classList.contains("ban-pick")) { el.classList.remove("ban-pick"); return; }
+  if (document.querySelectorAll(".ban-pick").length >= max) { toast("Можно забанить не больше " + max); return; }
+  el.classList.add("ban-pick");
+}
 async function rankedStartGo(banCount, picksFromModal) {
   try {
   var bans = [];
@@ -290,6 +352,7 @@ async function rankedStartGo(banCount, picksFromModal) {
     var sel = document.querySelectorAll(".ban-pick");
     var names = [];
     sel.forEach(function (el) { names.push(el.querySelector("h4").textContent); });
+    if (names.length !== banCount) { toast("Выберите ровно " + banCount + " для бана"); return; }
     // передаём имена — сервер фильтрует enemies по имени
     bans = names.slice(0, banCount);
     closeModal();
@@ -496,28 +559,62 @@ async function charDetail(cid) {
   (STATE.characters || []).forEach(function (x) { if (x.id === cid) c = x; });
   if (!c) return;
   var st = c.stats || {};
-  var cost = 0;
+  var cost = 0, evo = false;
   var r = await api("/api/character/upgrade_cost", { char_id: cid });
-  if (r.ok) cost = r.cost;
-  var html = '<h3>' + (c.face || "🦸") + " " + esc(c.name) + '</h3>' +
-    '<p class="muted">' + esc((c.affinities || []).join(", ")) + ' · ур. ' + c.level + ' · редкость ' + c.rarity + '</p>' +
-    '<div class="row"><span>❤️ HP</span><b>' + st.hp + '</b></div>' +
-    '<div class="row"><span>⚔️ Сила</span><b>' + st.str + '</b></div>' +
-    '<div class="row"><span>🛡 Защита</span><b>' + st.def + '</b></div>' +
-    '<div class="row"><span>💨 Ловкость</span><b>' + st.agi + '</b></div>' +
-    '<div class="row"><span>🔮 Воля</span><b>' + st.will + '</b></div>' +
-    '<p class="muted" style="margin:8px 0">' + esc(c.desc || "Герой тьмы.") + '</p>' +
-    '<button class="btn btn-play" onclick="upgradeChar(\'' + cid + '\')">⬆ Прокачать (' + cost + ' Тьмы)</button>' +
-    '<button class="btn" style="margin-top:6px" onclick="charGear(\'' + cid + '\')">🎒 Экипировка</button>';
+  if (r.ok) { cost = r.cost; evo = !!r.evo; }
+  // снаряжение как значки «2/2» в БС
+  var gear = c.gear || {}, wornG = 0;
+  ["weapon","armor","gloves","amulet","off_weapon","off_armor"].forEach(function (sl) { if (gear[sl]) wornG++; });
+  var arts = 0, artsT = (c.artifacts || []).length;
+  (c.artifacts || []).forEach(function (x) { if (x) arts++; });
+  var bons = 0, bonsT = (c.bonus || []).length;
+  (c.bonus || []).forEach(function (x) { if (x) bons++; });
+  var evoN = c.evo || 0;
+  // шкала СИЛЫ: 10 сегментов на 20 уровней
+  var segs = "";
+  for (var i = 1; i <= 10; i++) {
+    var cls = c.level >= i * 2 ? " full" : (c.level === i * 2 - 1 ? " half" : "");
+    segs += '<span class="bs-seg' + cls + '"></span>';
+  }
+  var html = '<div class="bs-detail">' +
+    '<div class="bs-gears">' +
+      '<div class="bs-chip g1"><i>🎒</i><b>' + wornG + '/6</b></div>' +
+      '<div class="bs-chip g2"><i>🧿</i><b>' + arts + '/' + Math.max(artsT, 1) + '</b></div>' +
+      '<div class="bs-chip g3"><i>✨</i><b>' + bons + '/' + Math.max(bonsT, 1) + '</b></div>' +
+      '<div class="bs-chip g4"><i>🌟</i><b>' + evoN + '/5</b></div>' +
+    '</div>' +
+    '<div class="bs-hero rar' + c.rarity + '"><span>' + (c.face || "🦸") + '</span></div>' +
+    '<h3 style="text-align:center;margin:2px 0 8px">' + esc(c.name) + '</h3>' +
+    '<div class="bs-power"><span class="bs-lvl">' + c.level + '</span><div class="bs-pbody">' +
+      '<div class="bs-prow"><b>СИЛА</b><span>' + (evo ? "МАКС 20" : "ур. " + c.level + " / 20") + '</span></div>' +
+      '<div class="bs-bar">' + segs + '</div></div></div>' +
+    '<div class="bs-stat hp"><i>❤️</i><div class="bs-stat-b"><b>ЗДОРОВЬЕ</b><span>' + st.hp + '</span></div></div>' +
+    '<div class="bs-stat atk"><i>⚔️</i><div class="bs-stat-b"><b>АТАКА</b><span>' + st.str + '</span></div></div>' +
+    '<div class="bs-stat def"><i>🛡️</i><div class="bs-stat-b"><b>ЗАЩИТА</b><span>' + st.def + '</span></div></div>' +
+    '<div class="bs-stat agi"><i>💨</i><div class="bs-stat-b"><b>ЛОВКОСТЬ</b><span>' + st.agi + '</span></div></div>' +
+    '<div class="bs-stat wil"><i>🔮</i><div class="bs-stat-b"><b>ВОЛЯ</b><span>' + st.will + '</span></div></div>' +
+    (evo ? '<div class="bs-max">МАКС. УРОВЕНЬ!</div>' : "") +
+    '<p class="muted" style="margin:8px 0">' + esc(c.desc || "") + ' · ' + esc((c.affinities || []).join(", ")) + '</p>' +
+    (evo
+      ? '<button class="btn btn-play" onclick="evolveChar(\'' + cid + '\')">🌟 Эволюция (' + cost + ' Тьмы)</button>'
+      : '<button class="btn btn-play" onclick="upgradeChar(\'' + cid + '\')">⬆ Прокачать (' + cost + ' Тьмы)</button>') +
+    '<button class="btn" style="margin-top:6px" onclick="charGear(\'' + cid + '\')">🎒 Экипировка</button>' +
+    '</div>';
   openModal(html);
 }
 async function upgradeChar(cid) {
   var r = await api("/api/character/upgrade", { char_id: cid });
   if (!r.ok) { toast(r.error); return; }
-  STATE = r.state || STATE;
-  renderChip();
+  await refresh();
   toast("⬆ Уровень повышен!");
-  closeModal(); renderChars();
+  charDetail(cid);
+}
+async function evolveChar(cid) {
+  var r = await api("/api/character/evolve", { char_id: cid });
+  if (!r.ok) { toast(r.error); return; }
+  await refresh();
+  toast("🌟 Эволюция!");
+  charDetail(cid);
 }
 function charGear(cid) {
   var c = null;
@@ -816,7 +913,7 @@ async function adminGive(tgId, field, val) {
   toast(r.ok ? "Выдано" : r.error);
   if (r.ok) renderAdmin();
 }
-function openModal(html) { $("#modal-box").innerHTML = html; $("#modal").classList.remove("hidden"); }
+function openModal(html) { $("#modal-box").innerHTML = '<button class="m-close" onclick="closeModal()">✕</button>' + html; $("#modal").classList.remove("hidden"); }
 function closeModal() { $("#modal").classList.add("hidden"); }
 function adminGiveField(tgId, field) {
   var labels = { darkness: "Тьму", egez: "Э Gez", scrolls: "Свитков", exp: "опыта" };

@@ -580,7 +580,7 @@ def evolve_character(player: dict, char_id: str, bonus_aff: str | None = None) -
         return {"ok": False, "error": "Эволюция доступна с 20 уровня"}
     if char["evo"] >= 5:
         return {"ok": False, "error": "Достигнута максимальная эволюция (5)"}
-    cost = 5000 * (char["evo"] + 1) * char["rarity"]
+    cost = D.EVO_COST_DARKNESS
     if player["darkness"] < cost:
         return {"ok": False, "error": f"Не хватает Тьмы: нужно {cost:,}"}
     # На 3-й и 5-й эволюции можно выбрать доп. особенность
