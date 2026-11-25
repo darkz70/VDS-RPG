@@ -329,13 +329,20 @@ CHANCES_FROM_ROUND = 4
 # Ранговый бой
 # ---------------------------------------------------------------------------
 RANKS = [
-    {"key": "wood",     "name": "Деревянный",        "img": "/app/img/ranks/wood.png",     "group": "Начальная",        "min": 0},
-    {"key": "stone",    "name": "Каменный",          "img": "/app/img/ranks/stone.png",    "group": "Начальная",        "min": 250},
-    {"key": "iron",     "name": "Железный",          "img": "/app/img/ranks/iron.png",     "group": "Начальная",        "min": 700},
-    {"key": "gold",     "name": "Золотой",           "img": "/app/img/ranks/gold.png",     "group": "Продвинутая",      "min": 1500},
-    {"key": "diamond",  "name": "Алмазный",          "img": "/app/img/ranks/diamond.png",  "group": "Продвинутая",      "min": 2500},
-    {"key": "emerald",  "name": "Изумрудный",        "img": "/app/img/ranks/emerald.png",  "group": "Продвинутая",      "min": 4000},
-    {"key": "pro",      "name": "Профессиональный",  "img": "/app/img/ranks/pro.png",      "group": "Профессиональный", "min": 5000},
+    {"key": "wood",     "name": "Деревянный",        "img": "/app/img/ranks/wood.png",     "group": "Начальная",        "min": 0,
+     "marks": [(0, 20), (20, 50), (50, 100), (100, 150), (150, 250)]},
+    {"key": "stone",    "name": "Каменный",          "img": "/app/img/ranks/stone.png",    "group": "Начальная",        "min": 250,
+     "marks": [(250, 300), (300, 350), (350, 500), (500, 600), (600, 700)]},
+    {"key": "iron",     "name": "Железный",          "img": "/app/img/ranks/iron.png",     "group": "Начальная",        "min": 700,
+     "marks": [(700, 800), (800, 900), (900, 1100), (1100, 1300), (1300, 1500)]},
+    {"key": "gold",     "name": "Золотой",           "img": "/app/img/ranks/gold.png",     "group": "Продвинутая",      "min": 1500,
+     "marks": [(1500, 1600), (1600, 1800), (1800, 2000), (2000, 2200), (2200, 2500)]},
+    {"key": "diamond",  "name": "Алмазный",          "img": "/app/img/ranks/diamond.png",  "group": "Продвинутая",      "min": 2500,
+     "marks": [(2500, 2600), (2600, 2800), (2800, 3500), (3500, 3800), (3800, 4000)]},
+    {"key": "emerald",  "name": "Изумрудный",        "img": "/app/img/ranks/emerald.png",  "group": "Продвинутая",      "min": 4000,
+     "marks": [(4000, 4200), (4200, 4400), (4400, 4600), (4600, 4800), (4800, 5000)]},
+    {"key": "pro",      "name": "Профессиональный",  "img": "/app/img/ranks/pro.png",      "group": "Профессиональный", "min": 5000,
+     "marks": []},
 ]
 RANK_START_MMR = 0
 
